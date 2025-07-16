@@ -23,9 +23,9 @@ export function getDb() {
 
   // Create new connection
   queryClient = postgres(connectionUrl, {
-    max: 1, // Single connection for serverless
-    idle_timeout: 20,
-    connect_timeout: 60,
+    max: process.env.NODE_ENV === 'production' ? 1 : 5, // Single connection for production
+    idle_timeout: 10, // Shorter timeout for serverless
+    connect_timeout: 5, // Reduced from 60s - fail fast
     ssl: process.env.NODE_ENV === 'production' ? 'require' : false,
     connection: {
       application_name: 'festival-review-app',
@@ -33,8 +33,12 @@ export function getDb() {
     prepare: false,
     // Connection pooling mode optimizations
     fetch_types: false, // Disable type fetching for pooling mode
-    // Retry logic
-    onnotice: () => {}, // Ignore notices
+    // Transform for better performance
+    transform: {
+      undefined: null,
+    },
+    // Debug in development
+    debug: process.env.NODE_ENV === 'development',
   });
 
   // Create drizzle instance

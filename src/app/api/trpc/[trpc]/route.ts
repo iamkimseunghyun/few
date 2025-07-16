@@ -22,6 +22,14 @@ const handler = async (req: NextRequest) => {
     batching: {
       enabled: true,
     },
+    responseMeta() {
+      return {
+        headers: {
+          // Cache for 1 second with stale-while-revalidate
+          'cache-control': 's-maxage=1, stale-while-revalidate',
+        },
+      };
+    },
     onError:
       process.env.NODE_ENV === 'development'
         ? ({ path, error }) => {

@@ -21,51 +21,22 @@ export async function createContext(opts: FetchCreateContextFnOptions) {
     const contextInner = await createContextInner();
     const { userId } = await auth();
     
-    // Get full user details if authenticated
-    let dbUser = null;
-    if (userId) {
-      const clerkUser = await currentUser();
-      
-      // Ensure user exists in database
-      if (clerkUser) {
-        let existingUser;
-        try {
-          existingUser = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, userId))
-            .limit(1);
-        } catch (dbError) {
-          console.error('Database query error:', dbError);
-          // Return minimal context on database error
-          return {
-            ...contextInner,
-            userId,
-            user: null,
-            headers: opts.req.headers,
-          };
-        }
-        
-        if (existingUser.length === 0) {
-          // Create user if doesn't exist
-          [dbUser] = await db
-            .insert(users)
-            .values({
-              id: userId,
-              username: clerkUser.username || clerkUser.emailAddresses?.[0]?.emailAddress?.split('@')[0] || 'user',
-              imageUrl: clerkUser.imageUrl,
-            })
-            .returning();
-        } else {
-          dbUser = existingUser[0];
-        }
-      }
+    // Return early if no userId - no need to query database
+    if (!userId) {
+      return {
+        ...contextInner,
+        userId: null,
+        user: null,
+        headers: opts.req.headers,
+      };
     }
 
+    // For now, just return userId without fetching full user data
+    // User data will be fetched only when needed by specific procedures
     return {
       ...contextInner,
       userId,
-      user: dbUser,
+      user: null, // Don't fetch user data on every request
       headers: opts.req.headers,
     };
   } catch (error) {
