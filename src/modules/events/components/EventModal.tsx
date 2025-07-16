@@ -126,11 +126,12 @@ export function EventModal({ event, isOpen, onClose }: EventModalProps) {
             </div>
           )}
 
-          {/* Description */}
-          {(event as any).description && (
+          {/* Venue Info */}
+          {event.venueInfo?.name && (
             <div className="pt-2">
-              <p className="text-sm text-gray-600 line-clamp-3">
-                {(event as any).description}
+              <p className="text-sm text-gray-600">
+                장소: {event.venueInfo.name}
+                {event.venueInfo.capacity && ` (수용인원: ${event.venueInfo.capacity.toLocaleString()}명)`}
               </p>
             </div>
           )}

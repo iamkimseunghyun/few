@@ -178,7 +178,7 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
             <button
               key={rating}
               type="button"
-              onClick={() => setValue(field as any, rating)}
+              onClick={() => setValue(field, rating)}
               className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg border-2 text-sm sm:text-base transition-colors ${
                 value >= rating
                   ? "border-primary bg-primary text-primary-foreground"

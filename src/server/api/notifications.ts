@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/trpc";
-import { notifications, users, reviews, comments } from "@/lib/db/schema";
+import { notifications, users } from "@/lib/db/schema";
 import { eq, and, desc, sql, count, inArray } from "drizzle-orm";
 import { idInput, paginationInput } from "./schemas";
 import { TRPCError } from "@trpc/server";
@@ -17,7 +17,7 @@ export const notificationsRouter = createTRPCRouter({
       const { limit = 20, cursor, onlyUnread = false, types } = input || {};
       const offset = cursor ? parseInt(cursor) : 0;
 
-      let whereConditions = [eq(notifications.userId, ctx.userId)];
+      const whereConditions = [eq(notifications.userId, ctx.userId)];
       
       if (onlyUnread) {
         whereConditions.push(eq(notifications.isRead, false));
@@ -169,7 +169,7 @@ export const notificationsRouter = createTRPCRouter({
 
   // Get notification preferences
   getPreferences: protectedProcedure
-    .query(async ({ ctx }) => {
+    .query(async () => {
       // For now, return default preferences
       // In the future, this could be stored in a user_preferences table
       return {
@@ -210,7 +210,7 @@ export const notificationsRouter = createTRPCRouter({
         }).partial(),
       }).partial()
     )
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       // For now, just return success
       // In the future, save to user_preferences table
       return { 

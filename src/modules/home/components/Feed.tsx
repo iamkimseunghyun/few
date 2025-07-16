@@ -2,6 +2,7 @@
 
 import { api } from '@/lib/trpc';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ErrorMessage } from '@/modules/shared/ui/components/ErrorMessage';
 import { EmptyState } from '@/modules/shared/ui/components/EmptyState';
 import { ReviewCardSkeleton } from '@/modules/shared/ui/components/SkeletonLoader';
@@ -75,10 +76,12 @@ export function Feed() {
               <div className="flex items-start gap-3">
                 {/* Author Avatar */}
                 {item.author.imageUrl ? (
-                  <img
+                  <Image
                     src={item.author.imageUrl}
                     alt={item.author.username}
-                    className="h-10 w-10 rounded-full"
+                    width={40}
+                    height={40}
+                    className="rounded-full"
                   />
                 ) : (
                   <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -134,12 +137,14 @@ export function Feed() {
                   {item.imageUrls && item.imageUrls.length > 0 && (
                     <div className="mt-3 grid grid-cols-3 gap-2">
                       {item.imageUrls.slice(0, 3).map((url, idx) => (
-                        <img
-                          key={idx}
-                          src={url}
-                          alt=""
-                          className="rounded-lg object-cover h-24 w-full"
-                        />
+                        <div key={idx} className="relative h-24 w-full">
+                          <Image
+                            src={url}
+                            alt=""
+                            fill
+                            className="rounded-lg object-cover"
+                          />
+                        </div>
                       ))}
                     </div>
                   )}

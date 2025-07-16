@@ -28,7 +28,7 @@ export function SearchResults() {
       {query && (
         <div className="mb-4">
           <p className="text-gray-600">
-            "{query}" 검색 결과{" "}
+            &ldquo;{query}&rdquo; 검색 결과{" "}
             {results && `(이벤트 ${results.events.length}개, 리뷰 ${results.reviews.length}개)`}
           </p>
         </div>
@@ -112,10 +112,10 @@ export function SearchResults() {
                           <span>{review.user?.username || '익명'}</span>
                           <span>•</span>
                           <span>{new Date(review.createdAt).toLocaleDateString('ko-KR')}</span>
-                          {review.event && (
+                          {review.eventName && (
                             <>
                               <span>•</span>
-                              <span className="text-purple-600">{review.event.name}</span>
+                              <span className="text-purple-600">{review.eventName}</span>
                             </>
                           )}
                         </div>

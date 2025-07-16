@@ -12,27 +12,6 @@ interface ReviewCardProps {
   review: ReviewWithDetails;
 }
 
-// Helper function to get reviewer badge
-function getReviewerBadge(user: any) {
-  if (!user.reviewerLevel) return null;
-  
-  const badges = {
-    seedling: { icon: '🌱', name: '새싹' },
-    regular: { icon: '🌿', name: '일반' },
-    expert: { icon: '🌳', name: '우수' },
-    master: { icon: '⭐', name: '전문' },
-  };
-  
-  const badge = badges[user.reviewerLevel as keyof typeof badges];
-  if (!badge) return null;
-  
-  return (
-    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground" title={`${badge.name} 리뷰어`}>
-      <span>{badge.icon}</span>
-    </span>
-  );
-}
-
 export function ReviewCard({ review }: ReviewCardProps) {
   const { isSignedIn } = useAuth();
   const [likeCount, setLikeCount] = useState(review?.likeCount || 0);
@@ -45,7 +24,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
   }
 
   const toggleLike = api.reviews.toggleLike.useMutation({
-    onMutate: async ({ reviewId }) => {
+    onMutate: async () => {
       // Optimistic update
       const newIsLiked = !isLiked;
       setIsLiked(newIsLiked);
@@ -69,7 +48,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
   });
 
   const toggleBookmark = api.reviews.toggleBookmark.useMutation({
-    onMutate: async ({ reviewId }) => {
+    onMutate: async () => {
       // Optimistic update
       const newIsBookmarked = !isBookmarked;
       setIsBookmarked(newIsBookmarked);

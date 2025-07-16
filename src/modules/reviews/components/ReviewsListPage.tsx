@@ -126,7 +126,12 @@ export function ReviewsListPage() {
         </div>
       ) : reviews.length > 0 ? (
         <InfiniteFeed
-          items={reviews}
+          items={reviews.map(review => ({
+            ...review,
+            isLiked: false,
+            isBookmarked: false,
+            eventName: review.eventName || undefined
+          } as ReviewWithDetails))}
           onLoadMore={fetchNextPage}
           hasMore={hasNextPage}
           isLoading={isFetchingNextPage}

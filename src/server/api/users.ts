@@ -1,6 +1,6 @@
-import { createTRPCRouter, protectedProcedure, adminProcedure, publicProcedure } from '@/server/trpc';
+import { createTRPCRouter, adminProcedure, publicProcedure } from '@/server/trpc';
 import { users } from '@/lib/db/schema';
-import { eq, like, or, desc, sql } from 'drizzle-orm';
+import { eq, like, desc, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
 
@@ -46,29 +46,25 @@ export const usersRouter = createTRPCRouter({
         })
         .from(users);
 
-      let query = baseQuery
-        .orderBy(desc(users.createdAt))
-        .limit(limit)
-        .offset(offset);
+      const whereCondition = search && search.trim() 
+        ? like(users.username, `%${search}%`)
+        : undefined;
 
-      if (search && search.trim()) {
-        query = query.where(
-          like(users.username, `%${search}%`)
-        );
-      }
+      const query = whereCondition 
+        ? baseQuery.where(whereCondition).orderBy(desc(users.createdAt)).limit(limit).offset(offset)
+        : baseQuery.orderBy(desc(users.createdAt)).limit(limit).offset(offset);
 
       const items = await query;
 
       // Check if there are more items
-      let totalCountQuery = ctx.db
-        .select({ count: sql<number>`count(*)` })
-        .from(users);
-        
-      if (search && search.trim()) {
-        totalCountQuery = totalCountQuery.where(
-          like(users.username, `%${search}%`)
-        );
-      }
+      const totalCountQuery = whereCondition
+        ? ctx.db
+            .select({ count: sql<number>`count(*)` })
+            .from(users)
+            .where(whereCondition)
+        : ctx.db
+            .select({ count: sql<number>`count(*)` })
+            .from(users);
       
       const totalCount = await totalCountQuery;
 

@@ -10,7 +10,7 @@ import {
   users,
   reviewHelpful,
 } from '@/lib/db/schema';
-import { eq, desc, and, sql, gte, inArray } from 'drizzle-orm';
+import { eq, desc, and, sql, inArray } from 'drizzle-orm';
 
 export const reviewsEnhancedRouter = createTRPCRouter({
   // Toggle helpful vote
@@ -167,7 +167,9 @@ export const reviewsEnhancedRouter = createTRPCRouter({
 });
 
 // Helper function to update reviewer levels
-async function updateReviewerLevels(db: any) {
+import type { db as Database } from '@/lib/db/server';
+
+async function updateReviewerLevels(db: typeof Database) {
   // Update all users' reviewer levels based on their stats
   await db.execute(sql`
     UPDATE users

@@ -1,5 +1,10 @@
-import { ReviewDetailPage } from "@/modules/reviews";
+import { ReviewDetailPage } from '@/modules/reviews';
 
-export default function ReviewDetail({ params }: { params: { id: string } }) {
-  return <ReviewDetailPage reviewId={params.id} />;
+export default async function ReviewDetail({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <ReviewDetailPage reviewId={id} />;
 }

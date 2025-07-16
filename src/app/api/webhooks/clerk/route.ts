@@ -1,7 +1,7 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { WebhookEvent } from "@clerk/nextjs/server";
-import { db as getDb } from "@/lib/db/server";
+import { db } from "@/lib/db/server";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
@@ -46,16 +46,25 @@ export async function POST(req: Request) {
   const eventType = evt.type;
 
   if (eventType === "user.created" || eventType === "user.updated") {
-    const { id, username, image_url } = evt.data;
+    const { id, username, image_url, email_addresses, primary_email_address_id } = evt.data;
+    
+    // Find primary email
+    interface EmailAddress {
+      id: string;
+      email_address: string;
+    }
+    const primaryEmail = email_addresses?.find(
+      (email: EmailAddress) => email.id === primary_email_address_id
+    )?.email_address;
     
     const userData = {
       id,
       username: username || `user_${id.slice(-6)}`,
+      email: primaryEmail || null,
       imageUrl: image_url || null,
     };
 
     try {
-      const db = await getDb();
       if (eventType === "user.created") {
         await db.insert(users).values(userData);
       } else {

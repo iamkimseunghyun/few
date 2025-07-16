@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 const reviewSchema = z.object({
   eventId: z.string().min(1, "이벤트를 선택해주세요"),
+  title: z.string().min(1, "제목을 입력해주세요").max(100, "제목은 100자 이내로 입력해주세요"),
   overallRating: z.number().min(1).max(5),
   soundRating: z.number().min(1).max(5).optional(),
   viewRating: z.number().min(1).max(5).optional(),

@@ -1,6 +1,8 @@
 import { notifications, users, reviews } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import type { DrizzleDB } from "@/lib/db";
+import type { db } from "@/lib/db/server";
+
+type DrizzleDB = typeof db;
 
 interface CreateNotificationParams {
   db: DrizzleDB;

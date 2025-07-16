@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/trpc';
 import { ReviewCard } from '@/modules/reviews';
+import type { ReviewWithDetails } from '@/modules/reviews/types';
 import Image from 'next/image';
 
 export function ProfilePage() {
@@ -236,7 +237,11 @@ export function ProfilePage() {
                       key={review.id}
                       className="rounded-lg border border-gray-200 bg-white"
                     >
-                      <ReviewCard review={review} />
+                      <ReviewCard review={{
+                        ...review,
+                        isLiked: false,
+                        isBookmarked: false
+                      } as ReviewWithDetails} />
                     </div>
                   ))
                 ) : (
@@ -277,7 +282,11 @@ export function ProfilePage() {
                     key={review.id}
                     className="rounded-lg border border-gray-200 bg-white"
                   >
-                    <ReviewCard review={review} />
+                    <ReviewCard review={{
+                      ...review,
+                      isLiked: false,
+                      isBookmarked: true
+                    } as ReviewWithDetails} />
                   </div>
                 ))
               ) : (

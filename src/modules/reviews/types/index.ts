@@ -5,18 +5,44 @@ export interface ReviewWithRelations extends Review {
   event: Event | null;
 }
 
-export interface ReviewWithDetails extends Review {
+export interface ReviewWithDetails {
+  // All properties from Review
+  id: string;
+  userId: string;
+  eventId: string | null;
+  eventName?: string;
+  title: string;
+  content: string;
+  overallRating: number;
+  soundRating: number | null;
+  viewRating: number | null;
+  safetyRating: number | null;
+  operationRating: number | null;
+  stageViewRating: number | null;
+  soundQualityRating: number | null;
+  crowdAtmosphereRating: number | null;
+  seatOrArea: string | null;
+  tags: string[] | null;
+  imageUrls: string[] | null;
+  helpfulCount: number;
+  bestReviewCount: number;
+  isBestReview: boolean;
+  bestReviewDate: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  
+  // Relations
   user: User | null;
   event: Event | null;
-  eventName?: string | null;
+  
+  // Computed fields
   likeCount: number;
   commentCount: number;
-  helpfulCount: number;
-  isLiked: boolean;
-  isBookmarked: boolean;
+  
+  // UI state
+  isLiked?: boolean;
+  isBookmarked?: boolean;
   isHelpful?: boolean;
-  isBestReview?: boolean;
-  bestReviewDate?: Date | null;
 }
 
 export interface ReviewFormData {

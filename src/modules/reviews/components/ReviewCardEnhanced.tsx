@@ -13,7 +13,11 @@ interface ReviewCardProps {
 }
 
 // Helper function to get reviewer badge
-function getReviewerBadge(user: any) {
+interface UserWithLevel {
+  reviewerLevel?: string | null;
+}
+
+function getReviewerBadge(user: UserWithLevel) {
   if (!user.reviewerLevel) return null;
   
   const badges = {
@@ -47,7 +51,7 @@ export function ReviewCardEnhanced({ review }: ReviewCardProps) {
   }
 
   const toggleLike = api.reviews.toggleLike.useMutation({
-    onMutate: async ({ reviewId }) => {
+    onMutate: async () => {
       // Optimistic update
       const newIsLiked = !isLiked;
       setIsLiked(newIsLiked);
@@ -71,7 +75,7 @@ export function ReviewCardEnhanced({ review }: ReviewCardProps) {
   });
 
   const toggleBookmark = api.reviews.toggleBookmark.useMutation({
-    onMutate: async ({ reviewId }) => {
+    onMutate: async () => {
       // Optimistic update
       const newIsBookmarked = !isBookmarked;
       setIsBookmarked(newIsBookmarked);
@@ -93,7 +97,7 @@ export function ReviewCardEnhanced({ review }: ReviewCardProps) {
   });
 
   const toggleHelpful = api.reviewsEnhanced.toggleHelpful.useMutation({
-    onMutate: async ({ reviewId }) => {
+    onMutate: async () => {
       // Optimistic update
       const newIsHelpful = !isHelpful;
       setIsHelpful(newIsHelpful);

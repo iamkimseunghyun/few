@@ -63,7 +63,20 @@ export function EditEventPage() {
       
       <div className="rounded-lg border border-gray-200 bg-white p-6">
         <EventForm
-          event={event}
+          event={{
+            id: event.id,
+            name: event.name,
+            category: event.category || "페스티벌", // null인 경우 기본값 설정
+            location: event.location || undefined,
+            dates: event.dates || undefined,
+            description: event.description || undefined,
+            lineup: event.lineup || undefined,
+            posterUrl: event.posterUrl || undefined,
+            ticketPriceRange: event.ticketPriceRange || undefined,
+            capacity: event.capacity || undefined,
+            organizer: event.organizer || undefined,
+            website: event.website || undefined,
+          }}
           onSuccess={() => {
             router.push("/admin");
           }}

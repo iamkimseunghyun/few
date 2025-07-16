@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "@/lib/trpc";
 import { CommentForm } from "./CommentForm";

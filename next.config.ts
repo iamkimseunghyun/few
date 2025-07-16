@@ -3,7 +3,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Turbopack configuration
   experimental: {
-    // Turbopack is already enabled with --turbopack flag
     // optimizePackageImports helps with tree-shaking
     optimizePackageImports: ["@clerk/nextjs", "@tanstack/react-query", "@trpc/client", "@trpc/react-query"],
   },
@@ -11,9 +10,11 @@ const nextConfig: NextConfig = {
   // Fast Refresh configuration
   reactStrictMode: true,
   
+  // Note: Webpack configuration removed as we're using Turbopack
+  // If you need to switch back to Webpack, uncomment the following:
+  /*
   webpack: (config, { isServer }) => {
     if (!isServer) {
-      // Don't resolve 'net', 'tls', 'perf_hooks' on the client
       config.resolve.fallback = {
         ...config.resolve.fallback,
         net: false,
@@ -27,6 +28,7 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  */
   
   // Ensure database operations only run on server
   serverExternalPackages: ['postgres', 'drizzle-orm'],

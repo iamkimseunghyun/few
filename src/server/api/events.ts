@@ -6,7 +6,7 @@ import {
   protectedProcedure,
 } from '@/server/trpc';
 import { events, reviews, eventBookmarks } from '@/lib/db/schema';
-import { and, count, desc, eq, like, or, sql, gte, lte, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, like, or, sql, inArray } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { dateRangeSchema, idInput, paginationInput } from './schemas';
 
@@ -405,7 +405,6 @@ export const eventsRouter = createTRPCRouter({
       const items = bookmarkedEvents.slice(0, limit);
       
       if (bookmarkedEvents.length > limit) {
-        const nextItem = bookmarkedEvents[limit];
         nextCursor = cursor ? String(parseInt(cursor) + limit) : String(limit);
       }
 

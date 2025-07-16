@@ -12,7 +12,6 @@ import { format, parse, startOfWeek, getDay, addMonths, subMonths } from 'date-f
 import { ko } from 'date-fns/locale';
 import { api } from '@/lib/trpc';
 import { type Event } from '@/lib/db/schema';
-import Link from 'next/link';
 import { EventModal } from './EventModal';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/EventCalendar.module.css';
@@ -73,7 +72,7 @@ export function EventCalendar() {
     locations: selectedLocations.length > 0 ? selectedLocations : undefined,
   }, {
     // Keep previous data while fetching new data
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     // Cache data for 5 minutes
     staleTime: 5 * 60 * 1000,
   });
@@ -138,7 +137,14 @@ export function EventCalendar() {
     );
   };
 
-  const CustomToolbar = ({ label, onNavigate, onView }: any) => (
+  interface ToolbarProps {
+    label: string;
+    onNavigate: (action: 'PREV' | 'NEXT' | 'TODAY') => void;
+    onView: (view: View) => void;
+    view: View;
+  }
+
+  const CustomToolbar = ({ label, onNavigate, onView }: ToolbarProps) => (
     <div className="mb-4 flex flex-col gap-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">

@@ -2,6 +2,7 @@
 
 import { api } from '@/lib/trpc';
 import { ReviewCard } from '@/modules/reviews';
+import type { ReviewWithDetails } from '@/modules/reviews/types';
 import { LoadingSpinner } from '@/modules/shared/ui/components/LoadingSpinner';
 import { ErrorMessage } from '@/modules/shared/ui/components/ErrorMessage';
 import { EmptyState } from '@/modules/shared/ui/components/EmptyState';
@@ -23,7 +24,7 @@ export function InfiniteFeed() {
     {
       getNextPageParam: (lastPage) => {
         // tRPC 직렬화로 인한 구조 처리
-        const pageData = (lastPage as any)?.json || lastPage;
+        const pageData = (lastPage as { json?: { nextCursor?: string } })?.json || lastPage;
         return pageData?.nextCursor;
       },
       refetchOnMount: false,
@@ -86,7 +87,7 @@ export function InfiniteFeed() {
   // 실제 작동하는 방식: page?.items가 undefined이므로 page?.json?.items 사용
   const allReviews =
     data?.pages.flatMap((page) => {
-      const items = page?.items || (page as any)?.json?.items || [];
+      const items = page?.items || (page as { json?: { items?: unknown[] } })?.json?.items || [];
       return Array.isArray(items) ? items : [];
     }) ?? [];
 
@@ -132,7 +133,12 @@ export function InfiniteFeed() {
     <div className="mx-auto max-w-2xl">
       <div className="divide-y divide-gray-100">
         {validReviews.map((review) => (
-          <ReviewCard key={review.id} review={review} />
+          <ReviewCard key={review.id} review={{
+            ...review,
+            isLiked: false,
+            isBookmarked: false,
+            eventName: review.eventName || undefined
+          } as ReviewWithDetails} />
         ))}
       </div>
 

@@ -4,10 +4,6 @@ import { db } from '@/lib/db/server';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-interface CreateContextOptions {
-  headers: Headers;
-}
-
 /**
  * Inner context - things available to all procedures
  */

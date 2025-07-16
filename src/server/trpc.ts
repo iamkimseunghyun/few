@@ -130,6 +130,13 @@ export const adminProcedure = t.procedure
   .use(isAuthed)
   .use(middleware(async ({ ctx, next }) => {
     // Check if user is admin
+    if (!ctx.userId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: '인증이 필요합니다.',
+      });
+    }
+    
     const user = await ctx.db
       .select()
       .from(users)

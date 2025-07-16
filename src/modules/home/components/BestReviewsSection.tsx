@@ -48,9 +48,9 @@ export function BestReviewsSection() {
                 {review.content}
               </p>
 
-              {(review.event || review.eventName) && (
+              {review.eventName && (
                 <p className="text-xs text-gray-500 mb-3 line-clamp-1">
-                  {review.event?.name || review.eventName}
+                  {review.eventName}
                 </p>
               )}
 

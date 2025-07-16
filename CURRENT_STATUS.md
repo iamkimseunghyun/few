@@ -1,7 +1,11 @@
-# 우리의 취향 (few) 현재 상태 - 2025-07-16
+# 우리의 취향 (few) 현재 상태 - 2025-07-16 (MVP 완성)
 
 ## 🎯 프로젝트 현황
 공연과 페스티벌 리뷰 플랫폼 - "우리의 취향"으로 함께 즐기고 경험하는 문화생활
+
+### 🎉 MVP 완성 (2025-07-16)
+프로젝트의 MVP(최소기능제품) 버전이 완성되었습니다. PROJECT.md에 정의된 모든 핵심 기능이 구현되었으며, 
+실제 서비스 운영이 가능한 수준의 완성도를 달성했습니다.
 
 ### 완료된 핵심 기능
 1. **캘린더 중심 UI** ✅
@@ -155,6 +159,18 @@ http://localhost:3030/admin (사용자 관리 탭)
 
 ## 🚀 빠른 시작
 ```bash
+# 환경 설정
+cp .env.example .env.local
+# Clerk, Database URL 등 설정
+
+# 의존성 설치
+npm install
+
+# 데이터베이스 셋업
+npm run db:setup
+npm run db:migrate
+npm run db:seed
+
 # 개발 서버
 npm run dev
 

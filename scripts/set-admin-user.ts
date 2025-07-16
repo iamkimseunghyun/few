@@ -1,12 +1,11 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { users } from '../src/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
+import { users } from '@/lib/db';
 
 // Load environment variables
-dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
+dotenv.config({ path: '.env.local' });
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -16,7 +15,7 @@ if (!DATABASE_URL) {
 }
 
 async function setAdminUser(emailOrUsername: string) {
-  const sql = postgres(DATABASE_URL);
+  const sql = postgres(DATABASE_URL!);
   const db = drizzle(sql);
 
   try {
@@ -34,27 +33,33 @@ async function setAdminUser(emailOrUsername: string) {
         .from(users)
         .where(eq(users.username, emailOrUsername))
         .limit(1);
-      
+
       if (userByUsername.length === 0) {
-        console.error(`User not found with email or username: ${emailOrUsername}`);
+        console.error(
+          `User not found with email or username: ${emailOrUsername}`
+        );
         process.exit(1);
       }
-      
+
       // Update user to admin
       await db
         .update(users)
         .set({ isAdmin: true })
         .where(eq(users.id, userByUsername[0].id));
-      
-      console.log(`✅ User ${userByUsername[0].username} (${userByUsername[0].email}) has been set as admin`);
+
+      console.log(
+        `✅ User ${userByUsername[0].username} (${userByUsername[0].email}) has been set as admin`
+      );
     } else {
       // Update user to admin
       await db
         .update(users)
         .set({ isAdmin: true })
         .where(eq(users.id, user[0].id));
-      
-      console.log(`✅ User ${user[0].username} (${user[0].email}) has been set as admin`);
+
+      console.log(
+        `✅ User ${user[0].username} (${user[0].email}) has been set as admin`
+      );
     }
 
     await sql.end();

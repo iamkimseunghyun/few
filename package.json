@@ -13,6 +13,9 @@
     "db:setup": "./scripts/setup-db.sh",
     "db:seed": "tsx scripts/seed-database.ts",
     "db:migrate": "tsx scripts/migrate.ts",
+    "db:add-email": "tsx scripts/add-email-field.ts",
+    "db:sync-emails": "tsx scripts/sync-user-emails.ts",
+    "db:add-event-fields": "tsx scripts/add-event-fields.ts",
     "set-admin": "tsx scripts/set-admin-user.ts"
   },
   "dependencies": {
@@ -48,6 +51,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
+    "@types/react-big-calendar": "^1.16.2",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.5",

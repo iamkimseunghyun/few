@@ -31,11 +31,13 @@ export function TRPCReactProvider(props: {
             gcTime: 1000 * 60 * 10, // 10 minutes (cacheTime is now gcTime in v5)
             refetchOnWindowFocus: false,
             refetchOnReconnect: 'always',
-            retry: (failureCount, error: any) => {
+            retry: (failureCount, error) => {
               // Don't retry on 4xx errors
+              const httpStatus = (error as { data?: { httpStatus?: number } })?.data?.httpStatus;
               if (
-                error?.data?.httpStatus >= 400 &&
-                error?.data?.httpStatus < 500
+                httpStatus &&
+                httpStatus >= 400 &&
+                httpStatus < 500
               ) {
                 return false;
               }

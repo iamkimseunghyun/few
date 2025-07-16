@@ -3,7 +3,6 @@
 import { EventCalendar } from '@/modules/events/components/EventCalendar';
 import { api } from '@/lib/trpc';
 import Link from 'next/link';
-import { type ReviewWithDetails } from '@/modules/reviews/types';
 import { BestReviewsSection } from './BestReviewsSection';
 import '@/modules/events/styles/calendar.css';
 

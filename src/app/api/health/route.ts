@@ -6,7 +6,7 @@ import { auth } from '@clerk/nextjs/server';
 export async function GET() {
   try {
     // Test database connection
-    const dbTest = await db.execute(sql`SELECT 1 as test`);
+    await db.execute(sql`SELECT 1 as test`);
     
     // Test auth
     const { userId } = await auth();

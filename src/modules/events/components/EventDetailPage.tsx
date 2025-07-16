@@ -8,6 +8,7 @@ import { api } from "@/lib/trpc";
 import { EventDetail } from "./EventDetail";
 import { ReviewCard, ReviewForm } from "@/modules/reviews";
 import { useToast } from "@/modules/shared";
+import type { ReviewWithDetails } from "@/modules/reviews/types";
 
 export function EventDetailPage() {
   const params = useParams();
@@ -118,13 +119,13 @@ export function EventDetailPage() {
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <p className="text-3xl font-bold text-gray-900">
-                  {event.reviewCount || 0}
+                  {event.stats?.reviewCount || 0}
                 </p>
                 <p className="text-sm text-gray-600">전체 리뷰</p>
               </div>
               <div>
                 <p className="text-3xl font-bold text-gray-900">
-                  {event.avgRating ? event.avgRating.toFixed(1) : "0.0"}
+                  {event.stats?.avgRating ? event.stats.avgRating.toFixed(1) : "0.0"}
                 </p>
                 <p className="text-sm text-gray-600">전체 만족도</p>
               </div>
@@ -178,16 +179,21 @@ export function EventDetailPage() {
         {/* 오른쪽: 리뷰 목록 */}
         <div className="lg:col-span-1">
           <h2 className="mb-6 text-xl font-semibold text-gray-900">
-            리뷰 ({reviews?.length || 0})
+            리뷰 ({reviews?.items?.length || 0})
           </h2>
           <div className="space-y-4">
-            {reviews && reviews.length > 0 ? (
-              reviews.map((review) => (
+            {reviews?.items && reviews.items.length > 0 ? (
+              reviews.items.map((review) => (
                 <div
                   key={review.id}
                   className="rounded-lg border border-gray-200 bg-white"
                 >
-                  <ReviewCard review={review} />
+                  <ReviewCard review={{
+                    ...review,
+                    isLiked: false,
+                    isBookmarked: false,
+                    eventName: review.eventName || undefined
+                  } as ReviewWithDetails} />
                 </div>
               ))
             ) : (

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure, protectedProcedure } from "@/server/trpc";
 import { comments, users, reviews, events } from "@/lib/db/schema";
-import { eq, desc, and, isNull, sql } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { notificationHelpers } from "@/server/utils/notifications";
 import { idInput } from "./schemas";
@@ -144,9 +144,25 @@ export const commentsRouter = createTRPCRouter({
       });
 
       // Build nested structure
+      type CommentItem = typeof filteredComments[0];
+      interface CommentTree {
+        id: string;
+        reviewId: string;
+        userId: string;
+        content: string;
+        parentCommentId: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        user: CommentItem['user'];
+        replyCount: number;
+        replies: CommentTree[];
+        canEdit: boolean;
+        canDelete: boolean;
+      }
+      
       const buildCommentTree = (
         commentItem: typeof filteredComments[0]
-      ): any => {
+      ): CommentTree => {
         const replies = repliesMap.get(commentItem.comment.id) || [];
         return {
           ...commentItem.comment,
@@ -233,7 +249,7 @@ export const commentsRouter = createTRPCRouter({
 
       // If comment has replies, soft delete
       if (existingComment[0].hasReplies) {
-        const [updated] = await ctx.db
+        await ctx.db
           .update(comments)
           .set({
             content: "[삭제된 댓글입니다]",

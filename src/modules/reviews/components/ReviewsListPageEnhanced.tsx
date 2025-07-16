@@ -43,10 +43,10 @@ export function ReviewsListPageEnhanced() {
   const reviews = data?.pages.flatMap((page) => page.items) ?? [];
 
   // Infinite scroll hook
-  const { observerTarget } = useInfiniteScroll({
-    hasMore: hasNextPage,
-    isLoading: isFetchingNextPage,
-    onLoadMore: fetchNextPage,
+  const { ref: observerTarget } = useInfiniteScroll({
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
   });
 
   if (isLoading) {

@@ -3,7 +3,6 @@ import {
   createTRPCRouter,
   publicProcedure,
   protectedProcedure,
-  adminProcedure,
 } from '@/server/trpc';
 import {
   reviews,
@@ -13,9 +12,8 @@ import {
   reviewBookmarks,
   reviewReports,
   comments,
-  reviewHelpful,
 } from '@/lib/db/schema';
-import { eq, desc, and, sql, lt, gt, gte, asc } from 'drizzle-orm';
+import { eq, desc, and, sql, lt, gt } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { notificationHelpers } from '@/server/utils/notifications';
 import { idInput, infiniteQueryInput, ratingSchema } from './schemas';

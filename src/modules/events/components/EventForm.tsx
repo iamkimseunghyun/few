@@ -57,7 +57,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
     defaultValues: event
       ? {
           name: event.name,
-          category: event.category,
+          category: event.category as "페스티벌" | "콘서트" | "내한공연" | "공연" | "전시",
           location: event.location,
           startDate: event.dates?.start ? event.dates.start.split('T')[0] : "",
           endDate: event.dates?.end ? event.dates.end.split('T')[0] : "",
@@ -224,7 +224,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
           포스터 이미지
         </label>
         <ImageUpload
-          value={watch("posterUrl") ? [watch("posterUrl")] : []}
+          value={watch("posterUrl") ? [watch("posterUrl") as string] : []}
           onChange={(urls) => setValue("posterUrl", urls[0] || "")}
           maxImages={1}
         />

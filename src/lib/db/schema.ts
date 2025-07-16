@@ -13,6 +13,7 @@ import { createId } from '@paralleldrive/cuid2';
 export const users = pgTable('users', {
   id: text('id').primaryKey(), // Clerk user ID
   username: varchar('username', { length: 100 }).notNull(),
+  email: varchar('email', { length: 255 }).unique(),
   imageUrl: text('image_url'),
   isAdmin: boolean('is_admin').default(false).notNull(),
   // Reviewer stats
@@ -32,8 +33,13 @@ export const events = pgTable('events', {
   category: varchar('category', { length: 50 }), // festival, concert, etc.
   location: text('location'),
   dates: json('dates').$type<{ start: string; end: string }>(), // JSON for date range
+  description: text('description'),
   lineup: json('lineup').$type<string[]>(), // Array of artist names
   posterUrl: text('poster_url'),
+  ticketPriceRange: varchar('ticket_price_range', { length: 255 }),
+  capacity: integer('capacity'),
+  organizer: varchar('organizer', { length: 255 }),
+  website: text('website'),
   venueInfo: json('venue_info').$type<{
     name?: string;
     capacity?: number;
