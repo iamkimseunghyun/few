@@ -1,7 +1,53 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Turbopack configuration
+  experimental: {
+    // Turbopack is already enabled with --turbopack flag
+    // optimizePackageImports helps with tree-shaking
+    optimizePackageImports: ["@clerk/nextjs", "@tanstack/react-query", "@trpc/client", "@trpc/react-query"],
+  },
+  
+  // Fast Refresh configuration
+  reactStrictMode: true,
+  
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Don't resolve 'net', 'tls', 'perf_hooks' on the client
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        net: false,
+        tls: false,
+        perf_hooks: false,
+        fs: false,
+        crypto: false,
+        os: false,
+        stream: false,
+      };
+    }
+    return config;
+  },
+  
+  // Ensure database operations only run on server
+  serverExternalPackages: ['postgres', 'drizzle-orm'],
+  
+  // Image optimization
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'imagedelivery.net',
+      },
+    ],
+  },
 };
 
 export default nextConfig;
