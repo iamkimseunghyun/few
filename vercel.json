@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "app/api/**/*": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "installCommand": "npm install --force",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
