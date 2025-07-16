@@ -28,11 +28,23 @@ export async function createContext(opts: FetchCreateContextFnOptions) {
       
       // Ensure user exists in database
       if (clerkUser) {
-        const existingUser = await db
-          .select()
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
+        let existingUser;
+        try {
+          existingUser = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+        } catch (dbError) {
+          console.error('Database query error:', dbError);
+          // Return minimal context on database error
+          return {
+            ...contextInner,
+            userId,
+            user: null,
+            headers: opts.req.headers,
+          };
+        }
         
         if (existingUser.length === 0) {
           // Create user if doesn't exist

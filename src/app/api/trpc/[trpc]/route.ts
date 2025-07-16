@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 /**
  * Configure maximum duration for serverless functions
  */
-export const maxDuration = 10;
+export const maxDuration = 30; // Increased for database operations
 
 const handler = async (req: NextRequest) => {
   return fetchRequestHandler({
