@@ -1,5 +1,5 @@
 {
-  "installCommand": "npm install --force",
+  "installCommand": "npm install --force && npm rebuild",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
