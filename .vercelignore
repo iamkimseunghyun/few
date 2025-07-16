@@ -1,0 +1,11 @@
+# Ignore local database and scripts
+/scripts
+*.db
+*.db-journal
+.env.local
+
+# Ignore development files
+.eslintcache
+.next
+node_modules
+.DS_Store
