@@ -40,6 +40,7 @@
 ## 🔧 기술적 구현 상태
 
 ### 데이터베이스
+- ~~PostgreSQL (Supabase)~~ → **Neon DB** (2025-07-17 마이그레이션 완료)
 - PostgreSQL + Drizzle ORM
 - users 테이블: `isAdmin`, 리뷰어 통계 필드 추가
 - reviews 테이블: `eventId` nullable, `title` 필드, 품질 지표 필드 추가
@@ -82,6 +83,27 @@ http://localhost:3030/admin (사용자 관리 탭)
 - TOMORROW_TASKS.md
 
 ## 📅 최근 작업 내역
+
+### 2025-07-17 작업 내용
+1. **Neon DB 마이그레이션**
+   - Supabase에서 Neon DB로 완전 마이그레이션
+   - 모든 프로덕션 데이터 이전 완료 (Users: 4개, Events: 9개, Reviews: 6개 등)
+   - 연결 최적화 및 성능 개선
+
+2. **데이터베이스 구조 개선**
+   - `src/lib/db/server.ts` 제거하고 `src/lib/db/index.ts`로 통합
+   - 더 깔끔한 모듈 구조 달성
+   - SQL 쿼리 최적화 (테이블 참조 명확화)
+
+3. **API 버그 수정**
+   - SQL 서브쿼리의 테이블 참조 문제 해결
+   - events 테이블에 누락된 필드 추가 (description, ticketPriceRange, capacity 등)
+   - 인증 미들웨어 개선 (userId만 체크하도록 변경)
+
+4. **ESLint 오류 해결**
+   - 50개 이상의 린트 오류 수정
+   - 타입 안전성 향상
+   - 코드 품질 개선
 
 ### 2025-07-16 작업 내용
 1. **관리자 대시보드 개선**

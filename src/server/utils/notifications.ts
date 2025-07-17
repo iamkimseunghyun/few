@@ -1,6 +1,6 @@
 import { notifications, users, reviews } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import type { db } from "@/lib/db/server";
+import type { db } from "@/lib/db";
 
 type DrizzleDB = typeof db;
 

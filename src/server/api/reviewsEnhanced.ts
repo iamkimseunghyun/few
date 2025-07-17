@@ -167,7 +167,7 @@ export const reviewsEnhancedRouter = createTRPCRouter({
 });
 
 // Helper function to update reviewer levels
-import type { db as Database } from '@/lib/db/server';
+import type { db as Database } from '@/lib/db';
 
 async function updateReviewerLevels(db: typeof Database) {
   // Update all users' reviewer levels based on their stats

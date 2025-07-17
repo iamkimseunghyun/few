@@ -1,8 +1,6 @@
 import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { db } from '@/lib/db/server';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
 
 /**
  * Inner context - things available to all procedures
@@ -56,5 +54,5 @@ export type Context = Awaited<ReturnType<typeof createContext>>;
 // Helper type for procedures that require auth
 export type AuthedContext = Context & {
   userId: string;
-  user: NonNullable<Context['user']>;
+  user: Context['user']; // user can be null, will be fetched when needed
 };

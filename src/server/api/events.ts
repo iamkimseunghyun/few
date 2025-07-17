@@ -6,7 +6,7 @@ import {
   protectedProcedure,
 } from '@/server/trpc';
 import { events, reviews, eventBookmarks } from '@/lib/db/schema';
-import { and, count, desc, eq, like, or, sql, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, like, or, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { dateRangeSchema, idInput, paginationInput } from './schemas';
 
@@ -69,12 +69,12 @@ export const eventsRouter = createTRPCRouter({
           event: events,
           reviewCount: sql<number>`(
             SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
+            WHERE ${reviews}.event_id = ${events}.id
           )`,
           avgRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews.overallRating}), 0)::float
+            SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
             FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
+            WHERE ${reviews}.event_id = ${events}.id
           )`,
         })
         .from(events)
@@ -104,36 +104,36 @@ export const eventsRouter = createTRPCRouter({
         event: events,
         reviewCount: sql<number>`(
             SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
+            WHERE ${reviews}.event_id = ${events}.id
           )`,
         avgRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews.overallRating}), 0)::float
+            SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
             FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
+            WHERE ${reviews}.event_id = ${events}.id
           )`,
         avgSoundRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews.soundRating}), 0)::float
+            SELECT COALESCE(AVG(${reviews}.sound_rating), 0)::float
             FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
-            AND ${reviews.soundRating} IS NOT NULL
+            WHERE ${reviews}.event_id = ${events}.id
+            AND ${reviews}.sound_rating IS NOT NULL
           )`,
         avgViewRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews.viewRating}), 0)::float
+            SELECT COALESCE(AVG(${reviews}.view_rating), 0)::float
             FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
-            AND ${reviews.viewRating} IS NOT NULL
+            WHERE ${reviews}.event_id = ${events}.id
+            AND ${reviews}.view_rating IS NOT NULL
           )`,
         avgSafetyRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews.safetyRating}), 0)::float
+            SELECT COALESCE(AVG(${reviews}.safety_rating), 0)::float
             FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
-            AND ${reviews.safetyRating} IS NOT NULL
+            WHERE ${reviews}.event_id = ${events}.id
+            AND ${reviews}.safety_rating IS NOT NULL
           )`,
         avgOperationRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews.operationRating}), 0)::float
+            SELECT COALESCE(AVG(${reviews}.operation_rating), 0)::float
             FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
-            AND ${reviews.operationRating} IS NOT NULL
+            WHERE ${reviews}.event_id = ${events}.id
+            AND ${reviews}.operation_rating IS NOT NULL
           )`,
       })
       .from(events)
@@ -232,7 +232,7 @@ export const eventsRouter = createTRPCRouter({
           event: events,
           reviewCount: sql<number>`(
             SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
+            WHERE ${reviews}.event_id = ${events}.id
           )`,
         })
         .from(events)
@@ -257,19 +257,19 @@ export const eventsRouter = createTRPCRouter({
           event: events,
           reviewCount: sql<number>`(
             SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
+            WHERE ${reviews}.event_id = ${events}.id
           )`,
           avgRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews.overallRating}), 0)::float
+            SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
             FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
+            WHERE ${reviews}.event_id = ${events}.id
           )`,
         })
         .from(events)
         .orderBy(
           sql`(
           SELECT COUNT(*) FROM ${reviews}
-          WHERE ${reviews.eventId} = ${events.id}
+          WHERE ${reviews}.event_id = ${events}.id
         ) DESC`
         )
         .limit(limit);
@@ -300,14 +300,14 @@ export const eventsRouter = createTRPCRouter({
       // Add category filter if provided
       if (input.categories && input.categories.length > 0) {
         whereConditions.push(
-          inArray(events.category, input.categories)
+          sql`${events.category} = ANY(${input.categories})`
         );
       }
 
       // Add location filter if provided
       if (input.locations && input.locations.length > 0) {
         whereConditions.push(
-          inArray(events.location, input.locations)
+          sql`${events.location} = ANY(${input.locations})`
         );
       }
 
@@ -316,12 +316,12 @@ export const eventsRouter = createTRPCRouter({
           event: events,
           reviewCount: sql<number>`(
             SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
+            WHERE ${reviews}.event_id = ${events}.id
           )`,
           avgRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews.overallRating}), 0)::float
+            SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
             FROM ${reviews}
-            WHERE ${reviews.eventId} = ${events.id}
+            WHERE ${reviews}.event_id = ${events}.id
           )`,
         })
         .from(events)

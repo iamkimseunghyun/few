@@ -57,7 +57,7 @@ const loggerMiddleware = middleware(async ({ path, type, next }) => {
  * Auth middleware - ensures user is authenticated
  */
 const isAuthed = middleware(({ ctx, next }) => {
-  if (!ctx.userId || !ctx.user) {
+  if (!ctx.userId) {
     throw new TRPCError({ 
       code: 'UNAUTHORIZED',
       message: '로그인이 필요합니다.',
