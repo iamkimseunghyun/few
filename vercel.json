@@ -7,5 +7,10 @@
   "env": {
     "NODE_ENV": "production",
     "SKIP_ENV_VALIDATION": "true"
+  },
+  "functions": {
+    "api/trpc/[trpc]": {
+      "maxDuration": 30
+    }
   }
 }
