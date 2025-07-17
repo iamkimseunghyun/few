@@ -46,7 +46,7 @@ export const commentsRouter = createTRPCRouter({
         }
       }
 
-      const [comment] = await ctx.db
+      const result = await ctx.db
         .insert(comments)
         .values({
           reviewId: input.reviewId,
@@ -55,17 +55,21 @@ export const commentsRouter = createTRPCRouter({
           parentId: input.parentId,
         })
         .returning();
+      
+      const comment = Array.isArray(result) ? result[0] : result;
 
       // Create notifications
       const helpers = notificationHelpers({ db: ctx.db });
       
       if (input.parentId) {
         // This is a reply - notify the parent comment author
-        const [parentComment] = await ctx.db
+        const parentResult = await ctx.db
           .select()
           .from(comments)
           .where(eq(comments.id, input.parentId))
           .limit(1);
+        
+        const parentComment = parentResult[0];
           
         if (parentComment && parentComment.userId !== ctx.userId) {
           await helpers.onCommentReplied(
@@ -85,7 +89,7 @@ export const commentsRouter = createTRPCRouter({
       }
 
       // Return comment with user info
-      const [commentWithUser] = await ctx.db
+      const commentResult = await ctx.db
         .select({
           comment: comments,
           user: users,
@@ -94,6 +98,8 @@ export const commentsRouter = createTRPCRouter({
         .leftJoin(users, eq(comments.userId, users.id))
         .where(eq(comments.id, comment.id))
         .limit(1);
+      
+      const commentWithUser = commentResult[0];
 
       return {
         ...commentWithUser.comment,
@@ -211,7 +217,7 @@ export const commentsRouter = createTRPCRouter({
         });
       }
 
-      const [updated] = await ctx.db
+      const updateResult = await ctx.db
         .update(comments)
         .set({
           content: input.content,
@@ -219,6 +225,8 @@ export const commentsRouter = createTRPCRouter({
         })
         .where(eq(comments.id, input.id))
         .returning();
+      
+      const updated = Array.isArray(updateResult) ? updateResult[0] : updateResult;
 
       return updated;
     }),
