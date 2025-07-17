@@ -10,15 +10,18 @@ const url = new URL(DATABASE_URL);
 url.searchParams.delete('channel_binding');
 DATABASE_URL = url.toString();
 
-// Create postgres client with serverless-optimized settings
+// Create postgres client with Neon pooler-optimized settings
 const queryClient = postgres(DATABASE_URL, {
-  // Serverless environment settings
+  // Neon pooler settings
   max: 1, // Single connection per function instance
-  idle_timeout: 10, // Quick timeout for serverless
-  connect_timeout: 5, // Faster connection timeout
+  idle_timeout: 0, // Disable idle timeout for pooler
+  connect_timeout: 10, // Increase connection timeout
   ssl: process.env.NODE_ENV === 'production' ? 'require' : undefined,
   prepare: false, // Required for Neon's pooler
-  // Connection pooling is handled by Neon's pooler endpoint
+  // Additional settings for Neon pooler
+  connection: {
+    application_name: 'few-app'
+  }
 });
 
 // Create and export drizzle instance
