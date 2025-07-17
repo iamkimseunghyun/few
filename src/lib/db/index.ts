@@ -1,14 +1,8 @@
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { Pool } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from './schema';
 
-// Create Neon serverless pool
-const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL 
-});
-
 // Create and export drizzle instance
-export const db = drizzle(pool, { 
+export const db = drizzle(process.env.DATABASE_URL!, {
   schema,
   logger: process.env.NODE_ENV === 'development',
 });
