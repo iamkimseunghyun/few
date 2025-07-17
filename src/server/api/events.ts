@@ -157,7 +157,8 @@ export const eventsRouter = createTRPCRouter({
   create: adminProcedure
     .input(createEventSchema)
     .mutation(async ({ ctx, input }) => {
-      const [event] = await ctx.db.insert(events).values(input).returning();
+      const result = await ctx.db.insert(events).values(input).returning();
+      const event = Array.isArray(result) ? result[0] : result;
 
       return event;
     }),
@@ -172,7 +173,7 @@ export const eventsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id, data } = input;
 
-      const [updatedEvent] = await ctx.db
+      const result = await ctx.db
         .update(events)
         .set({
           ...data,
@@ -180,6 +181,8 @@ export const eventsRouter = createTRPCRouter({
         })
         .where(eq(events.id, id))
         .returning();
+
+      const updatedEvent = Array.isArray(result) ? result[0] : result;
 
       if (!updatedEvent) {
         throw new TRPCError({
@@ -205,10 +208,12 @@ export const eventsRouter = createTRPCRouter({
       });
     }
 
-    const [deletedEvent] = await ctx.db
+    const result = await ctx.db
       .delete(events)
       .where(eq(events.id, input.id))
       .returning();
+
+    const deletedEvent = Array.isArray(result) ? result[0] : result;
 
     if (!deletedEvent) {
       throw new TRPCError({

@@ -91,7 +91,8 @@ export const notificationsRouter = createTRPCRouter({
         )
         .returning({ id: notifications.id });
 
-      if (!result.length) {
+      const resultArray = Array.isArray(result) ? result : [result];
+      if (!resultArray.length) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "알림을 찾을 수 없습니다.",
@@ -114,9 +115,10 @@ export const notificationsRouter = createTRPCRouter({
         )
         .returning({ id: notifications.id });
 
+      const resultArray = Array.isArray(result) ? result : [result];
       return { 
         success: true,
-        count: result.length,
+        count: resultArray.length,
       };
     }),
 
@@ -133,7 +135,8 @@ export const notificationsRouter = createTRPCRouter({
         )
         .returning({ id: notifications.id });
 
-      if (!result.length) {
+      const resultArray = Array.isArray(result) ? result : [result];
+      if (!resultArray.length) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "알림을 찾을 수 없습니다.",
@@ -161,9 +164,10 @@ export const notificationsRouter = createTRPCRouter({
         .where(and(...whereConditions))
         .returning({ id: notifications.id });
 
+      const resultArray = Array.isArray(result) ? result : [result];
       return { 
         success: true,
-        count: result.length,
+        count: resultArray.length,
       };
     }),
 

@@ -74,7 +74,7 @@ export const reviewsRouter = createTRPCRouter({
         }
       }
 
-      const [review] = await ctx.db
+      const result = await ctx.db
         .insert(reviews)
         .values({
           userId: ctx.userId,
@@ -91,6 +91,8 @@ export const reviewsRouter = createTRPCRouter({
           tags: input.tags,
         })
         .returning();
+
+      const review = Array.isArray(result) ? result[0] : result;
 
       return review;
     }),
@@ -333,7 +335,7 @@ export const reviewsRouter = createTRPCRouter({
         });
       }
 
-      const [updated] = await ctx.db
+      const result = await ctx.db
         .update(reviews)
         .set({
           ...input.data,
@@ -341,6 +343,8 @@ export const reviewsRouter = createTRPCRouter({
         })
         .where(eq(reviews.id, input.id))
         .returning();
+
+      const updated = Array.isArray(result) ? result[0] : result;
 
       return updated;
     }),

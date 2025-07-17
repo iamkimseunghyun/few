@@ -255,8 +255,7 @@ export const commentsRouter = createTRPCRouter({
             content: "[삭제된 댓글입니다]",
             updatedAt: new Date(),
           })
-          .where(eq(comments.id, input.id))
-          .returning();
+          .where(eq(comments.id, input.id));
 
         return { success: true, softDeleted: true };
       } else {
