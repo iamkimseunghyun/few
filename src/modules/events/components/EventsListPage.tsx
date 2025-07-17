@@ -8,17 +8,31 @@ import { EventCardSkeleton } from '@/modules/shared/ui/components/SkeletonLoader
 import { ErrorMessage } from '@/modules/shared/ui/components/ErrorMessage';
 import { EmptyState } from '@/modules/shared/ui/components/EmptyState';
 import { type EventWithStats } from '../types';
+import { type EventCategory } from '@/lib/db/schema';
 import { useAuth } from '@clerk/nextjs';
+
+// 카테고리 한글 변환 매핑
+const categoryLabels: Record<EventCategory, string> = {
+  festival: '페스티벌',
+  concert: '콘서트',
+  overseas_tour: '내한공연',
+  performance: '공연',
+  exhibition: '전시',
+};
+
+// 카테고리 약어 매핑 (모바일 헤더용)
+const categoryAbbr: Record<EventCategory, string> = {
+  festival: 'F',
+  concert: 'C',
+  overseas_tour: 'O',
+  performance: 'P',
+  exhibition: 'E',
+};
 
 export function EventsListPage() {
   const [category, setCategory] = useState<string>('all');
   const { isSignedIn } = useAuth();
-  const {
-    data,
-    isLoading,
-    error,
-    refetch,
-  } = api.events.getAll.useQuery();
+  const { data, isLoading, error, refetch } = api.events.getAll.useQuery();
 
   // API 응답에서 items 배열 추출
   const eventsList = data?.items || [];
@@ -100,13 +114,43 @@ export function EventsListPage() {
         </button>
         <button
           onClick={() => setCategory('concert')}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
             category === 'concert'
               ? 'bg-gray-900 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
           콘서트
+        </button>
+        <button
+          onClick={() => setCategory('overseas_tour')}
+          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
+            category === 'overseas_tour'
+              ? 'bg-gray-900 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          내한공연
+        </button>
+        <button
+          onClick={() => setCategory('performance')}
+          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
+            category === 'performance'
+              ? 'bg-gray-900 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          공연
+        </button>
+        <button
+          onClick={() => setCategory('exhibition')}
+          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
+            category === 'exhibition'
+              ? 'bg-gray-900 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          전시
         </button>
       </div>
 
@@ -132,7 +176,7 @@ export function EventsListPage() {
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
                     <span className="text-xs font-medium">
-                      {event.category === 'festival' ? 'F' : 'C'}
+                      {categoryAbbr[event.category as EventCategory] || 'E'}
                     </span>
                   </div>
                   <div>
@@ -149,7 +193,7 @@ export function EventsListPage() {
                   상세보기
                 </Link>
               </div>
-              
+
               {/* 이미지 영역 */}
               <Link
                 href={`/events/${event.id}`}
@@ -180,14 +224,18 @@ export function EventsListPage() {
                   </div>
                 )}
               </Link>
-              
+
               {/* 모바일: 인스타그램 스타일 정보 영역 */}
               <div className="p-3 sm:hidden">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium">{event.reviewCount || 0} 리뷰</span>
+                    <span className="text-sm font-medium">
+                      {event.reviewCount || 0} 리뷰
+                    </span>
                     {event.avgRating > 0 && (
-                      <span className="text-sm text-gray-600">★ {event.avgRating.toFixed(1)}</span>
+                      <span className="text-sm text-gray-600">
+                        ★ {event.avgRating.toFixed(1)}
+                      </span>
                     )}
                   </div>
                   {event.dates && (
@@ -208,7 +256,7 @@ export function EventsListPage() {
                   </Link>
                 )}
               </div>
-              
+
               {/* 데스크탑: 기존 스타일 정보 영역 */}
               <div className="hidden sm:block p-4 sm:p-5">
                 <div className="mb-2 flex items-start justify-between gap-2">
@@ -217,7 +265,8 @@ export function EventsListPage() {
                   </h3>
                   {event.category && (
                     <span className="inline-block rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">
-                      {event.category === 'festival' ? '페스티벌' : '콘서트'}
+                      {categoryLabels[event.category as EventCategory] ||
+                        event.category}
                     </span>
                   )}
                 </div>
@@ -273,12 +322,12 @@ export function EventsListPage() {
           title={
             category === 'all'
               ? '아직 등록된 이벤트가 없습니다'
-              : `${category === 'festival' ? '페스티벌' : '콘서트'}가 없습니다`
+              : `${categoryLabels[category as EventCategory] || '이벤트'}가 없습니다`
           }
           description="곧 새로운 이벤트가 등록될 예정입니다"
         />
       )}
-      
+
       {/* 모바일 플로팅 액션 버튼 */}
       {isSignedIn && (
         <Link

@@ -1,9 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-// Define routes that are accessible without authentication based on current file structure
+// Define routes that are accessible without authentication based on the current file structure
 const isPublicRoute = createRouteMatcher([
   '/', // Homepage
+  '/reviews',
+  '/events',
   '/sign-in(.*)', // Clerk sign-in page
   '/sign-up(.*)', // Clerk sign-up page
   '/api(.*)', // All API routes (including tRPC)
@@ -18,7 +20,7 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  // For all other routes, if user is not authenticated, protect them
+  // For all other routes, if a user is not authenticated, protect them
   if (!userId) {
     await auth.protect();
   }
