@@ -72,9 +72,9 @@ async function seed() {
 
     // Seed events
     console.log('Seeding events...');
-    for (const event of seedData.events) {
-      await db.insert(events).values(event).onConflictDoNothing();
-    }
+    // for (const event of seedData.events) {
+    //   await db.insert(events).values(event).onConflictDoNothing();
+    // }
 
     console.log('✅ Seed completed successfully!');
   } catch (error) {

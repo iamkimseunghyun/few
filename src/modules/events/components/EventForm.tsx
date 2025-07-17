@@ -1,25 +1,43 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { api } from "@/lib/trpc";
-import { ImageUpload } from "@/modules/shared/upload/components/ImageUpload";
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { api } from '@/lib/trpc';
+import { ImageUpload } from '@/modules/shared/upload/components/ImageUpload';
+import { type EventCategory } from '@/lib/db/schema';
+
+// 카테고리 매핑
+const categoryMap = {
+  페스티벌: 'festival',
+  콘서트: 'concert',
+  내한공연: 'overseas_tour',
+  공연: 'performance',
+  전시: 'exhibition',
+} as const;
+
+const reverseCategoryMap = {
+  festival: '페스티벌',
+  concert: '콘서트',
+  overseas_tour: '내한공연',
+  performance: '공연',
+  exhibition: '전시',
+} as const;
 
 const eventSchema = z.object({
-  name: z.string().min(1, "이벤트명을 입력해주세요"),
-  category: z.enum(["페스티벌", "콘서트", "내한공연", "공연", "전시"]),
-  location: z.string().min(1, "장소를 입력해주세요"),
-  startDate: z.string().min(1, "시작일을 선택해주세요"),
-  endDate: z.string().min(1, "종료일을 선택해주세요"),
+  name: z.string().min(1, '이벤트명을 입력해주세요'),
+  category: z.enum(['페스티벌', '콘서트', '내한공연', '공연', '전시']),
+  location: z.string().min(1, '장소를 입력해주세요'),
+  startDate: z.string().min(1, '시작일을 선택해주세요'),
+  endDate: z.string().min(1, '종료일을 선택해주세요'),
   description: z.string().optional(),
   lineup: z.string().optional(), // 라인업 (콤마로 구분)
   posterUrl: z.string().optional(),
   ticketPriceRange: z.string().optional(),
   capacity: z.number().optional(),
   organizer: z.string().optional(),
-  website: z.string().url().optional().or(z.literal("")),
+  website: z.string().url().optional().or(z.literal('')),
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -57,20 +75,21 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
     defaultValues: event
       ? {
           name: event.name,
-          category: event.category as "페스티벌" | "콘서트" | "내한공연" | "공연" | "전시",
+          category:
+            reverseCategoryMap[event.category as EventCategory] || '페스티벌',
           location: event.location,
-          startDate: event.dates?.start ? event.dates.start.split('T')[0] : "",
-          endDate: event.dates?.end ? event.dates.end.split('T')[0] : "",
-          description: event.description || "",
-          lineup: event.lineup?.join(', ') || "",
-          posterUrl: event.posterUrl || "",
-          ticketPriceRange: event.ticketPriceRange || "",
+          startDate: event.dates?.start ? event.dates.start.split('T')[0] : '',
+          endDate: event.dates?.end ? event.dates.end.split('T')[0] : '',
+          description: event.description || '',
+          lineup: event.lineup?.join(', ') || '',
+          posterUrl: event.posterUrl || '',
+          ticketPriceRange: event.ticketPriceRange || '',
           capacity: event.capacity || undefined,
-          organizer: event.organizer || "",
-          website: event.website || "",
+          organizer: event.organizer || '',
+          website: event.website || '',
         }
       : {
-          category: "페스티벌" as const,
+          category: '페스티벌' as const,
         },
   });
 
@@ -89,13 +108,28 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
   const onSubmit = async (data: EventFormData) => {
     setIsSubmitting(true);
     try {
+      // 한글 카테고리를 영어로 변환
+      const englishCategory = categoryMap[data.category];
+
       const eventData = {
-        ...data,
+        name: data.name,
+        category: englishCategory as EventCategory,
+        location: data.location,
         dates: {
           start: new Date(data.startDate + 'T00:00:00Z').toISOString(),
           end: new Date(data.endDate + 'T23:59:59Z').toISOString(),
         },
-        lineup: data.lineup ? data.lineup.split(',').map(item => item.trim()).filter(Boolean) : undefined,
+        description: data.description || undefined,
+        lineup: data.lineup
+          ? data.lineup
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : undefined,
+        posterUrl: data.posterUrl || undefined,
+        ticketPriceRange: data.ticketPriceRange || undefined,
+        capacity: data.capacity || undefined,
+        organizer: data.organizer || undefined,
         website: data.website || undefined,
       };
 
@@ -108,7 +142,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
         await createEvent.mutateAsync(eventData);
       }
     } catch (error) {
-      console.error("이벤트 저장 실패:", error);
+      console.error('이벤트 저장 실패:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -121,7 +155,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
           이벤트명 <span className="text-red-500">*</span>
         </label>
         <input
-          {...register("name")}
+          {...register('name')}
           type="text"
           className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none"
           placeholder="예: 서울재즈페스티벌 2024"
@@ -136,7 +170,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
           카테고리 <span className="text-red-500">*</span>
         </label>
         <select
-          {...register("category")}
+          {...register('category')}
           className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 focus:border-gray-900 focus:outline-none"
         >
           <option value="페스티벌">페스티벌</option>
@@ -152,7 +186,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
           장소 <span className="text-red-500">*</span>
         </label>
         <input
-          {...register("location")}
+          {...register('location')}
           type="text"
           className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none"
           placeholder="예: 올림픽공원"
@@ -168,12 +202,14 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
             시작일 <span className="text-red-500">*</span>
           </label>
           <input
-            {...register("startDate")}
+            {...register('startDate')}
             type="date"
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 focus:border-gray-900 focus:outline-none"
           />
           {errors.startDate && (
-            <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
+            <p className="mt-1 text-sm text-red-600">
+              {errors.startDate.message}
+            </p>
           )}
         </div>
 
@@ -182,12 +218,14 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
             종료일 <span className="text-red-500">*</span>
           </label>
           <input
-            {...register("endDate")}
+            {...register('endDate')}
             type="date"
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 focus:border-gray-900 focus:outline-none"
           />
           {errors.endDate && (
-            <p className="mt-1 text-sm text-red-600">{errors.endDate.message}</p>
+            <p className="mt-1 text-sm text-red-600">
+              {errors.endDate.message}
+            </p>
           )}
         </div>
       </div>
@@ -197,7 +235,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
           라인업 / 출연진
         </label>
         <input
-          {...register("lineup")}
+          {...register('lineup')}
           type="text"
           className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none"
           placeholder="출연진을 콤마로 구분하여 입력 (예: 아이유, 박효신, 이하이)"
@@ -212,7 +250,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
           설명
         </label>
         <textarea
-          {...register("description")}
+          {...register('description')}
           rows={4}
           className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none"
           placeholder="이벤트에 대한 설명을 입력하세요"
@@ -224,8 +262,8 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
           포스터 이미지
         </label>
         <ImageUpload
-          value={watch("posterUrl") ? [watch("posterUrl") as string] : []}
-          onChange={(urls) => setValue("posterUrl", urls[0] || "")}
+          value={watch('posterUrl') ? [watch('posterUrl') as string] : []}
+          onChange={(urls) => setValue('posterUrl', urls[0] || '')}
           maxImages={1}
         />
       </div>
@@ -236,7 +274,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
             티켓 가격대
           </label>
           <input
-            {...register("ticketPriceRange")}
+            {...register('ticketPriceRange')}
             type="text"
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none"
             placeholder="예: 50,000원 ~ 150,000원"
@@ -248,7 +286,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
             수용 인원
           </label>
           <input
-            {...register("capacity", { valueAsNumber: true })}
+            {...register('capacity', { valueAsNumber: true })}
             type="number"
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none"
             placeholder="예: 5000"
@@ -262,7 +300,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
             주최자
           </label>
           <input
-            {...register("organizer")}
+            {...register('organizer')}
             type="text"
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none"
             placeholder="예: (주)페스티벌코리아"
@@ -274,13 +312,15 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
             웹사이트
           </label>
           <input
-            {...register("website")}
+            {...register('website')}
             type="url"
             className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-gray-900 focus:outline-none"
             placeholder="https://example.com"
           />
           {errors.website && (
-            <p className="mt-1 text-sm text-red-600">{errors.website.message}</p>
+            <p className="mt-1 text-sm text-red-600">
+              {errors.website.message}
+            </p>
           )}
         </div>
       </div>
@@ -291,7 +331,7 @@ export function EventForm({ event, onSuccess, onCancel }: EventFormProps) {
           disabled={isSubmitting}
           className="flex-1 rounded-lg bg-gray-900 py-3 font-medium text-white transition-colors hover:bg-gray-800 disabled:bg-gray-400"
         >
-          {isSubmitting ? "저장 중..." : event ? "수정하기" : "추가하기"}
+          {isSubmitting ? '저장 중...' : event ? '수정하기' : '추가하기'}
         </button>
         <button
           type="button"

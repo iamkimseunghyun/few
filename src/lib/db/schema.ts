@@ -7,8 +7,35 @@ import {
   timestamp,
   varchar,
   uniqueIndex,
+  pgEnum,
 } from 'drizzle-orm/pg-core';
 import { createId } from '@paralleldrive/cuid2';
+
+// 이벤트 카테고리 enum 정의 (DB와 완전 일치)
+export const eventCategoryEnum = pgEnum('event_category', [
+  'festival',
+  'concert',
+  'performance',
+  'exhibition',
+  'overseas_tour',
+]);
+
+// TypeScript 타입 정의
+export type EventCategory =
+  | 'festival'
+  | 'concert'
+  | 'performance'
+  | 'exhibition'
+  | 'overseas_tour';
+
+// 카테고리 라벨 매핑 (표시용)
+export const categoryLabels: Record<EventCategory, string> = {
+  festival: '페스티벌',
+  concert: '콘서트',
+  performance: '공연',
+  exhibition: '전시',
+  overseas_tour: '내한공연',
+};
 
 export const users = pgTable('users', {
   id: text('id').primaryKey(), // Clerk user ID
@@ -20,7 +47,9 @@ export const users = pgTable('users', {
   reviewCount: integer('review_count').default(0).notNull(),
   totalLikesReceived: integer('total_likes_received').default(0).notNull(),
   bestReviewCount: integer('best_review_count').default(0).notNull(),
-  reviewerLevel: varchar('reviewer_level', { length: 20 }).default('seedling').notNull(), // seedling, regular, expert, master
+  reviewerLevel: varchar('reviewer_level', { length: 20 })
+    .default('seedling')
+    .notNull(), // seedling, regular, expert, master
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -30,7 +59,7 @@ export const events = pgTable('events', {
     .primaryKey()
     .$defaultFn(() => createId()),
   name: varchar('name', { length: 256 }).notNull(),
-  category: varchar('category', { length: 50 }), // festival, concert, etc.
+  category: eventCategoryEnum('category'), // enum 사용
   location: text('location'),
   dates: json('dates').$type<{ start: string; end: string }>(), // JSON for date range
   description: text('description'),
@@ -56,8 +85,7 @@ export const reviews = pgTable('reviews', {
   userId: text('user_id')
     .references(() => users.id)
     .notNull(),
-  eventId: text('event_id')
-    .references(() => events.id),
+  eventId: text('event_id').references(() => events.id),
   eventName: varchar('event_name', { length: 256 }), // For free-form event names
   title: varchar('title', { length: 256 }).notNull(),
   // Ratings (1-5 scale)
@@ -109,20 +137,27 @@ export const reviewBookmarks = pgTable('review_bookmarks', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-export const eventBookmarks = pgTable('event_bookmarks', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  eventId: text('event_id')
-    .references(() => events.id, { onDelete: 'cascade' })
-    .notNull(),
-  userId: text('user_id')
-    .references(() => users.id)
-    .notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
-  uniqueBookmark: uniqueIndex('unique_event_bookmark').on(table.userId, table.eventId),
-}));
+export const eventBookmarks = pgTable(
+  'event_bookmarks',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    eventId: text('event_id')
+      .references(() => events.id, { onDelete: 'cascade' })
+      .notNull(),
+    userId: text('user_id')
+      .references(() => users.id)
+      .notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueBookmark: uniqueIndex('unique_event_bookmark').on(
+      table.userId,
+      table.eventId
+    ),
+  })
+);
 
 export const reviewReports = pgTable('review_reports', {
   id: text('id')
@@ -179,6 +214,20 @@ export const notifications = pgTable('notifications', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Review helpful votes
+export const reviewHelpful = pgTable('review_helpful', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  reviewId: text('review_id')
+    .references(() => reviews.id)
+    .notNull(),
+  userId: text('user_id')
+    .references(() => users.id)
+    .notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -196,20 +245,6 @@ export type ReviewReport = typeof reviewReports.$inferSelect;
 export type NewReviewReport = typeof reviewReports.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
-// Review helpful votes
-export const reviewHelpful = pgTable('review_helpful', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  reviewId: text('review_id')
-    .references(() => reviews.id)
-    .notNull(),
-  userId: text('user_id')
-    .references(() => users.id)
-    .notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
-
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
 export type ReviewHelpful = typeof reviewHelpful.$inferSelect;

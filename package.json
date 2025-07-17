@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "node -e \"try{require('@tailwindcss/oxide')}catch(e){console.log('Rebuilding native modules...');require('child_process').execSync('npm rebuild @tailwindcss/oxide',{stdio:'inherit'})}\"",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",

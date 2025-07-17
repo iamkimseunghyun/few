@@ -1,17 +1,28 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Calendar,
-  Views,
   dateFnsLocalizer,
-  type View,
   type Event as CalendarEvent,
+  type View,
+  Views,
 } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay, addMonths, subMonths } from 'date-fns';
+import {
+  addMonths,
+  format,
+  getDay,
+  parse,
+  startOfWeek,
+  subMonths,
+} from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { api } from '@/lib/trpc';
-import { type Event } from '@/lib/db/schema';
+import {
+  categoryLabels,
+  type Event,
+  type EventCategory,
+} from '@/lib/db/schema';
 import { EventModal } from './EventModal';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/EventCalendar.module.css';
@@ -36,19 +47,22 @@ interface EventCalendarEvent extends CalendarEvent {
   resource: Event;
 }
 
-const eventTypeColors = {
-  페스티벌: '#8B5CF6', // Purple for festivals
-  콘서트: '#3B82F6', // Blue for concerts
-  내한공연: '#10B981', // Green for overseas tours
-  공연: '#EC4899', // Pink for general performances
-  전시: '#F59E0B', // Amber for exhibitions
-  default: '#6B7280', // Gray for others
+// 색상 매핑
+const eventTypeColors: Record<EventCategory, string> = {
+  festival: '#8B5CF6',
+  concert: '#3B82F6',
+  performance: '#EC4899',
+  exhibition: '#F59E0B',
+  overseas_tour: '#10B981',
 };
 
 export function EventCalendar() {
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  // Fix: Change from string[] to EventCategory[]
+  const [selectedCategories, setSelectedCategories] = useState<EventCategory[]>(
+    []
+  );
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -65,17 +79,19 @@ export function EventCalendar() {
   const { data: locations } = api.events.getLocations.useQuery();
 
   // Fetch events for the current view range
-  const { data: eventsData, isLoading } = api.events.getByDateRange.useQuery({
-    startDate: dateRange.start.toISOString(),
-    endDate: dateRange.end.toISOString(),
-    categories: selectedCategories.length > 0 ? selectedCategories : undefined,
-    locations: selectedLocations.length > 0 ? selectedLocations : undefined,
-  }, {
-    // Keep previous data while fetching new data
-    placeholderData: (previousData) => previousData,
-    // Cache data for 5 minutes
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: eventsData, isLoading } = api.events.getByDateRange.useQuery(
+    {
+      startDate: dateRange.start.toISOString(),
+      endDate: dateRange.end.toISOString(),
+      categories:
+        selectedCategories.length > 0 ? selectedCategories : undefined,
+      locations: selectedLocations.length > 0 ? selectedLocations : undefined,
+    },
+    {
+      placeholderData: (previousData) => previousData,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 
   const events: EventCalendarEvent[] = useMemo(() => {
     if (!eventsData?.items) return [];
@@ -86,7 +102,9 @@ export function EventCalendar() {
         id: event.id,
         title: event.name,
         start: new Date(event.dates!.start),
-        end: event.dates?.end ? new Date(event.dates.end) : new Date(event.dates!.start),
+        end: event.dates?.end
+          ? new Date(event.dates.end)
+          : new Date(event.dates!.start),
         resource: event,
       }));
   }, [eventsData]);
@@ -101,9 +119,9 @@ export function EventCalendar() {
   }, []);
 
   const eventStyleGetter = useCallback((event: EventCalendarEvent) => {
-    const category = event.resource.category as keyof typeof eventTypeColors;
-    const backgroundColor = eventTypeColors[category] || eventTypeColors.default;
-    
+    const category = event.resource.category as EventCategory;
+    const backgroundColor = eventTypeColors[category] || '#6B7280';
+
     return {
       style: {
         backgroundColor,
@@ -121,18 +139,19 @@ export function EventCalendar() {
     };
   }, []);
 
-  const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
+  // Fix: Update parameter type to EventCategory
+  const toggleCategory = (category: EventCategory) => {
+    setSelectedCategories((prev) =>
       prev.includes(category)
-        ? prev.filter(c => c !== category)
+        ? prev.filter((c) => c !== category)
         : [...prev, category]
     );
   };
 
   const toggleLocation = (location: string) => {
-    setSelectedLocations(prev => 
+    setSelectedLocations((prev) =>
       prev.includes(location)
-        ? prev.filter(l => l !== location)
+        ? prev.filter((l) => l !== location)
         : [...prev, location]
     );
   };
@@ -148,75 +167,106 @@ export function EventCalendar() {
     <div className="mb-4 flex flex-col gap-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-        <button
-          onClick={() => onNavigate('PREV')}
-          className="rounded-lg border border-gray-300 p-2 hover:bg-gray-50"
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h2 className="text-xl font-bold text-gray-900">{label}</h2>
-        <button
-          onClick={() => onNavigate('NEXT')}
-          className="rounded-lg border border-gray-300 p-2 hover:bg-gray-50"
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-        <button
-          onClick={() => onNavigate('TODAY')}
-          className="ml-2 rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          오늘
-        </button>
+          <button
+            onClick={() => onNavigate('PREV')}
+            className="rounded-lg border border-gray-300 p-2 hover:bg-gray-50"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+          <h2 className="text-xl font-bold text-gray-900">{label}</h2>
+          <button
+            onClick={() => onNavigate('NEXT')}
+            className="rounded-lg border border-gray-300 p-2 hover:bg-gray-50"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={() => onNavigate('TODAY')}
+            className="ml-2 rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+          >
+            오늘
+          </button>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => onView(Views.MONTH)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              view === Views.MONTH
+                ? 'bg-gray-900 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            월
+          </button>
+          <button
+            onClick={() => onView(Views.WEEK)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              view === Views.WEEK
+                ? 'bg-gray-900 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            주
+          </button>
+          <button
+            onClick={() => onView(Views.DAY)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              view === Views.DAY
+                ? 'bg-gray-900 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            일
+          </button>
+        </div>
       </div>
-      
-      <div className="flex gap-2">
-        <button
-          onClick={() => onView(Views.MONTH)}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            view === Views.MONTH
-              ? 'bg-gray-900 text-white'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          월
-        </button>
-        <button
-          onClick={() => onView(Views.WEEK)}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            view === Views.WEEK
-              ? 'bg-gray-900 text-white'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          주
-        </button>
-        <button
-          onClick={() => onView(Views.DAY)}
-          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            view === Views.DAY
-              ? 'bg-gray-900 text-white'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          일
-        </button>
-      </div>
-      </div>
-      
+
       {/* 필터 토글 버튼 */}
       <div className="flex items-center gap-4">
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+            />
           </svg>
-          필터 {(selectedCategories.length > 0 || selectedLocations.length > 0) && 
+          필터{' '}
+          {(selectedCategories.length > 0 || selectedLocations.length > 0) &&
             `(${selectedCategories.length + selectedLocations.length})`}
         </button>
         {(selectedCategories.length > 0 || selectedLocations.length > 0) && (
@@ -231,7 +281,7 @@ export function EventCalendar() {
           </button>
         )}
       </div>
-      
+
       {/* 필터 패널 */}
       {showFilters && (
         <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -239,36 +289,42 @@ export function EventCalendar() {
           <div className="mb-4">
             <h3 className="mb-2 text-sm font-medium text-gray-700">카테고리</h3>
             <div className="flex flex-wrap gap-2">
-              {Object.keys(eventTypeColors).filter(cat => cat !== 'default').map(category => (
+              {Object.entries(categoryLabels).map(([value, label]) => (
                 <button
-                  key={category}
-                  onClick={() => toggleCategory(category)}
+                  key={value}
+                  onClick={() => {
+                    console.log('Category clicked:', value);
+                    // Fix: Cast value to EventCategory
+                    toggleCategory(value as EventCategory);
+                  }}
                   className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors ${
-                    selectedCategories.includes(category)
+                    selectedCategories.includes(value as EventCategory)
                       ? 'bg-gray-900 text-white'
                       : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                   }`}
                 >
-                  <div 
-                    className="h-2.5 w-2.5 rounded-full" 
-                    style={{ 
-                      backgroundColor: selectedCategories.includes(category) 
-                        ? 'white' 
-                        : eventTypeColors[category as keyof typeof eventTypeColors] 
-                    }} 
+                  <div
+                    className="h-2.5 w-2.5 rounded-full"
+                    style={{
+                      backgroundColor: selectedCategories.includes(
+                        value as EventCategory
+                      )
+                        ? 'white'
+                        : eventTypeColors[value as EventCategory],
+                    }}
                   />
-                  {category}
+                  {label}
                 </button>
               ))}
             </div>
           </div>
-          
+
           {/* 지역 필터 */}
           {locations && locations.length > 0 && (
             <div>
               <h3 className="mb-2 text-sm font-medium text-gray-700">지역</h3>
               <div className="flex flex-wrap gap-2">
-                {locations.map(location => (
+                {locations.map((location) => (
                   <button
                     key={location}
                     onClick={() => toggleLocation(location)}
@@ -296,6 +352,11 @@ export function EventCalendar() {
       </div>
     );
   }
+
+  console.log('Selected Categories:', selectedCategories);
+  console.log('Selected Locations:', selectedLocations);
+  console.log('Events Data:', eventsData);
+  console.log('Filtered Events:', events);
 
   return (
     <div className="rounded-lg bg-white p-4 shadow-sm sm:p-6">
@@ -330,31 +391,22 @@ export function EventCalendar() {
         culture="ko"
         className="h-[600px]"
       />
-      
+
       {/* Event type legend */}
       <div className="mt-4 flex flex-wrap gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: eventTypeColors.페스티벌 }} />
-          <span className="text-gray-600">페스티벌</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: eventTypeColors.콘서트 }} />
-          <span className="text-gray-600">콘서트</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: eventTypeColors.내한공연 }} />
-          <span className="text-gray-600">내한공연</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: eventTypeColors.공연 }} />
-          <span className="text-gray-600">공연</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: eventTypeColors.전시 }} />
-          <span className="text-gray-600">전시</span>
-        </div>
+        {Object.entries(categoryLabels).map(([value, label]) => (
+          <div key={value} className="flex items-center gap-2">
+            <div
+              className="h-3 w-3 rounded-full"
+              style={{
+                backgroundColor: eventTypeColors[value as EventCategory],
+              }}
+            />
+            <span className="text-gray-600">{label}</span>
+          </div>
+        ))}
       </div>
-      
+
       {/* Event Modal */}
       <EventModal
         event={selectedEvent}

@@ -6,13 +6,15 @@ import {
   protectedProcedure,
 } from '@/server/trpc';
 import { events, reviews, eventBookmarks } from '@/lib/db/schema';
-import { and, count, desc, eq, like, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, like, or, sql, inArray } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 import { dateRangeSchema, idInput, paginationInput } from './schemas';
 
 const createEventSchema = z.object({
   name: z.string().min(1).max(256),
-  category: z.string().max(50).optional(),
+  category: z
+    .enum(['festival', 'concert', 'performance', 'exhibition', 'overseas_tour'])
+    .optional(),
   location: z.string().max(500).optional(),
   dates: dateRangeSchema.optional(),
   description: z.string().max(2000).optional(),
@@ -31,7 +33,15 @@ export const eventsRouter = createTRPCRouter({
     .input(
       paginationInput
         .extend({
-          category: z.string().optional(),
+          category: z
+            .enum([
+              'festival',
+              'concert',
+              'performance',
+              'exhibition',
+              'overseas_tour',
+            ])
+            .optional(),
           search: z.string().optional(),
         })
         .optional()
@@ -52,7 +62,6 @@ export const eventsRouter = createTRPCRouter({
           or(
             like(events.name, searchPattern),
             like(events.location, searchPattern)
-            // like(events.description, searchPattern)
           )
         );
       }
@@ -68,14 +77,14 @@ export const eventsRouter = createTRPCRouter({
         .select({
           event: events,
           reviewCount: sql<number>`(
-            SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-          )`,
+                                     SELECT COUNT(*)::int FROM ${reviews}
+                                     WHERE ${reviews}.event_id = ${events}.id
+                                   )`,
           avgRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
-            FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-          )`,
+                                   SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
+                                   FROM ${reviews}
+                                   WHERE ${reviews}.event_id = ${events}.id
+                                 )`,
         })
         .from(events)
         .where(where)
@@ -103,38 +112,38 @@ export const eventsRouter = createTRPCRouter({
       .select({
         event: events,
         reviewCount: sql<number>`(
-            SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-          )`,
+                                   SELECT COUNT(*)::int FROM ${reviews}
+                                   WHERE ${reviews}.event_id = ${events}.id
+                                 )`,
         avgRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
-            FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-          )`,
+                                 SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
+                                 FROM ${reviews}
+                                 WHERE ${reviews}.event_id = ${events}.id
+                               )`,
         avgSoundRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews}.sound_rating), 0)::float
-            FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-            AND ${reviews}.sound_rating IS NOT NULL
-          )`,
+                                      SELECT COALESCE(AVG(${reviews}.sound_rating), 0)::float
+                                      FROM ${reviews}
+                                      WHERE ${reviews}.event_id = ${events}.id
+                                        AND ${reviews}.sound_rating IS NOT NULL
+                                    )`,
         avgViewRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews}.view_rating), 0)::float
-            FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-            AND ${reviews}.view_rating IS NOT NULL
-          )`,
+                                     SELECT COALESCE(AVG(${reviews}.view_rating), 0)::float
+                                     FROM ${reviews}
+                                     WHERE ${reviews}.event_id = ${events}.id
+                                       AND ${reviews}.view_rating IS NOT NULL
+                                   )`,
         avgSafetyRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews}.safety_rating), 0)::float
-            FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-            AND ${reviews}.safety_rating IS NOT NULL
-          )`,
+                                       SELECT COALESCE(AVG(${reviews}.safety_rating), 0)::float
+                                       FROM ${reviews}
+                                       WHERE ${reviews}.event_id = ${events}.id
+                                         AND ${reviews}.safety_rating IS NOT NULL
+                                     )`,
         avgOperationRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews}.operation_rating), 0)::float
-            FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-            AND ${reviews}.operation_rating IS NOT NULL
-          )`,
+                                          SELECT COALESCE(AVG(${reviews}.operation_rating), 0)::float
+                                          FROM ${reviews}
+                                          WHERE ${reviews}.event_id = ${events}.id
+                                            AND ${reviews}.operation_rating IS NOT NULL
+                                        )`,
       })
       .from(events)
       .where(eq(events.id, input.id))
@@ -236,9 +245,9 @@ export const eventsRouter = createTRPCRouter({
         .select({
           event: events,
           reviewCount: sql<number>`(
-            SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-          )`,
+                                     SELECT COUNT(*)::int FROM ${reviews}
+                                     WHERE ${reviews}.event_id = ${events}.id
+                                   )`,
         })
         .from(events)
         .where(sql`${events.dates}->>'start' >= ${today}`)
@@ -261,21 +270,21 @@ export const eventsRouter = createTRPCRouter({
         .select({
           event: events,
           reviewCount: sql<number>`(
-            SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-          )`,
+                                     SELECT COUNT(*)::int FROM ${reviews}
+                                     WHERE ${reviews}.event_id = ${events}.id
+                                   )`,
           avgRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
-            FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-          )`,
+                                   SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
+                                   FROM ${reviews}
+                                   WHERE ${reviews}.event_id = ${events}.id
+                                 )`,
         })
         .from(events)
         .orderBy(
           sql`(
-          SELECT COUNT(*) FROM ${reviews}
-          WHERE ${reviews}.event_id = ${events}.id
-        ) DESC`
+                SELECT COUNT(*) FROM ${reviews}
+                WHERE ${reviews}.event_id = ${events}.id
+              ) DESC`
         )
         .limit(limit);
 
@@ -286,52 +295,65 @@ export const eventsRouter = createTRPCRouter({
       }));
     }),
 
-  // Get events by date range
+  // Get events by date range - 완전히 수정된 버전
   getByDateRange: publicProcedure
     .input(
       z.object({
         startDate: z.string(),
         endDate: z.string(),
-        categories: z.array(z.string()).optional(),
+        categories: z
+          .array(
+            z.enum([
+              'festival',
+              'concert',
+              'performance',
+              'exhibition',
+              'overseas_tour',
+            ])
+          )
+          .optional(),
         locations: z.array(z.string()).optional(),
       })
     )
     .query(async ({ ctx, input }) => {
+      console.log('getByDateRange input:', input);
+
       const whereConditions = [
         sql`${events.dates}->>'start' <= ${input.endDate}`,
-        sql`COALESCE(${events.dates}->>'end', ${events.dates}->>'start') >= ${input.startDate}`
+        sql`COALESCE(${events.dates}->>'end', ${events.dates}->>'start') >= ${input.startDate}`,
       ];
 
-      // Add category filter if provided
+      // 카테고리 필터 - inArray 사용 (Drizzle 권장 방식)
       if (input.categories && input.categories.length > 0) {
-        whereConditions.push(
-          sql`${events.category} = ANY(${input.categories})`
-        );
+        whereConditions.push(inArray(events.category, input.categories));
       }
 
-      // Add location filter if provided
+      // 지역 필터 - 부분 검색이므로 SQL 사용
       if (input.locations && input.locations.length > 0) {
-        whereConditions.push(
-          sql`${events.location} = ANY(${input.locations})`
+        const locationQueries = input.locations.map(
+          (location) => sql`${events.location} LIKE ${`%${location}%`}`
         );
+        whereConditions.push(sql`(${sql.join(locationQueries, sql` OR `)})`);
       }
 
       const eventsList = await ctx.db
         .select({
           event: events,
           reviewCount: sql<number>`(
-            SELECT COUNT(*)::int FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-          )`,
+                                     SELECT COUNT(*)::int FROM ${reviews}
+                                     WHERE ${reviews}.event_id = ${events}.id
+                                   )`,
           avgRating: sql<number>`(
-            SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
-            FROM ${reviews}
-            WHERE ${reviews}.event_id = ${events}.id
-          )`,
+                                   SELECT COALESCE(AVG(${reviews}.overall_rating), 0)::float
+                                   FROM ${reviews}
+                                   WHERE ${reviews}.event_id = ${events}.id
+                                 )`,
         })
         .from(events)
         .where(and(...whereConditions))
         .orderBy(sql`${events.dates}->>'start' ASC`);
+
+      console.log('getByDateRange result:', eventsList.length);
 
       return {
         items: eventsList.map(({ event, reviewCount, avgRating }) => ({
@@ -351,7 +373,7 @@ export const eventsRouter = createTRPCRouter({
       .orderBy(events.location);
 
     return result
-      .map(r => r.location)
+      .map((r) => r.location)
       .filter((location): location is string => location !== null);
   }),
 
@@ -378,12 +400,10 @@ export const eventsRouter = createTRPCRouter({
         return { bookmarked: false };
       } else {
         // Add bookmark
-        await ctx.db
-          .insert(eventBookmarks)
-          .values({
-            eventId: input.id,
-            userId: ctx.userId,
-          });
+        await ctx.db.insert(eventBookmarks).values({
+          eventId: input.id,
+          userId: ctx.userId,
+        });
         return { bookmarked: true };
       }
     }),
@@ -408,13 +428,13 @@ export const eventsRouter = createTRPCRouter({
 
       let nextCursor: typeof cursor | undefined = undefined;
       const items = bookmarkedEvents.slice(0, limit);
-      
+
       if (bookmarkedEvents.length > limit) {
         nextCursor = cursor ? String(parseInt(cursor) + limit) : String(limit);
       }
 
       return {
-        items: items.map(item => ({
+        items: items.map((item) => ({
           ...item.event,
           bookmarkCreatedAt: item.bookmarkCreatedAt,
         })),

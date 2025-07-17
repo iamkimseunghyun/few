@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { UserManagement } from './UserManagement';
 import { LoadingSpinner, ConfirmModal, useToast } from '@/modules/shared';
+import { categoryLabels, type EventCategory } from '@/lib/db/schema';
 
 export function AdminDashboard() {
   const { isSignedIn } = useAuth();
@@ -18,7 +19,9 @@ export function AdminDashboard() {
 
   const [activeTab, setActiveTab] = useState<'events' | 'users'>('events');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<
+    EventCategory | 'all'
+  >('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
@@ -41,7 +44,7 @@ export function AdminDashboard() {
     limit,
     cursor: String((currentPage - 1) * limit),
     search: searchQuery || undefined,
-    category: selectedCategory || undefined,
+    category: selectedCategory === 'all' ? undefined : selectedCategory,
   });
 
   const deleteEvent = api.events.delete.useMutation({
@@ -57,22 +60,15 @@ export function AdminDashboard() {
 
   const updateBestReviews = api.reviewsEnhanced.updateBestReviews.useMutation({
     onSuccess: (data) => {
-      showToast(`베스트 리뷰가 업데이트되었습니다. (총 ${data.updated}개)`, 'success');
+      showToast(
+        `베스트 리뷰가 업데이트되었습니다. (총 ${data.updated}개)`,
+        'success'
+      );
     },
     onError: () => {
       showToast('베스트 리뷰 업데이트에 실패했습니다.', 'error');
     },
   });
-
-  // 카테고리 목록
-  const categories = [
-    { value: '', label: '전체' },
-    { value: '페스티벌', label: '페스티벌' },
-    { value: '콘서트', label: '콘서트' },
-    { value: '내한공연', label: '내한공연' },
-    { value: '공연', label: '공연' },
-    { value: '전시', label: '전시' },
-  ];
 
   if (userLoading) {
     return (
@@ -170,15 +166,15 @@ export function AdminDashboard() {
               </div>
               <select
                 value={selectedCategory}
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value);
-                  setCurrentPage(1);
-                }}
+                onChange={(e) =>
+                  setSelectedCategory(e.target.value as EventCategory | 'all')
+                }
                 className="rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-500 focus:outline-none"
               >
-                {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
+                <option value="all">전체</option>
+                {Object.entries(categoryLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
                   </option>
                 ))}
               </select>
@@ -243,7 +239,7 @@ export function AdminDashboard() {
                         <div className="mt-1 flex items-center gap-4 text-sm text-gray-600">
                           {event.category && (
                             <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
-                              {event.category}
+                              {categoryLabels[event.category] || event.category}
                             </span>
                           )}
                           {event.location && <span>{event.location}</span>}
@@ -281,7 +277,7 @@ export function AdminDashboard() {
                 ) : (
                   <div className="flex min-h-[40vh] items-center justify-center">
                     <p className="text-gray-600">
-                      {searchQuery || selectedCategory
+                      {searchQuery || selectedCategory !== 'all'
                         ? '검색 결과가 없습니다.'
                         : '등록된 이벤트가 없습니다.'}
                     </p>
@@ -320,7 +316,9 @@ export function AdminDashboard() {
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, eventId: '', eventName: '' })}
+        onClose={() =>
+          setDeleteModal({ isOpen: false, eventId: '', eventName: '' })
+        }
         onConfirm={confirmDelete}
         title="이벤트 삭제"
         message={`"${deleteModal.eventName}" 이벤트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`}
