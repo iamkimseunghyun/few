@@ -1,16 +1,20 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { api } from "@/lib/trpc";
-import { useRouter } from "next/navigation";
-import { ImageUpload } from "@/modules/shared/upload/components/ImageUpload";
-import { useDebounce } from "@/modules/shared/hooks/useDebounce";
+import { useState, useEffect, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { api } from '@/lib/trpc';
+import { useRouter } from 'next/navigation';
+import { ImageUpload } from '@/modules/shared/upload/components/ImageUpload';
+import { useDebounce } from '@/modules/shared/hooks/useDebounce';
+import { useReviewDraft } from '../hooks/useReviewDraft';
 
 const reviewSchema = z.object({
-  title: z.string().min(1, "제목을 입력해주세요").max(100, "제목은 100자 이내로 입력해주세요"),
+  title: z
+    .string()
+    .min(1, '제목을 입력해주세요')
+    .max(100, '제목은 100자 이내로 입력해주세요'),
   eventId: z.string().optional(),
   eventName: z.string().optional(), // 자유 입력된 이벤트명
   overallRating: z.number().min(1).max(5),
@@ -19,7 +23,10 @@ const reviewSchema = z.object({
   safetyRating: z.number().min(1).max(5).optional(),
   operationRating: z.number().min(1).max(5).optional(),
   seatOrArea: z.string().optional(),
-  content: z.string().min(10, "최소 10자 이상 입력해주세요").max(5000, "최대 5000자까지 입력 가능합니다"),
+  content: z
+    .string()
+    .min(10, '최소 10자 이상 입력해주세요')
+    .max(5000, '최대 5000자까지 입력 가능합니다'),
   tags: z.string().optional(),
   imageUrls: z.array(z.string()).optional(),
 });
@@ -33,19 +40,34 @@ interface ReviewFormProps {
   onSuccess?: () => void;
 }
 
-export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: ReviewFormProps) {
+export function ReviewForm({
+  eventId,
+  reviewId,
+  initialData,
+  onSuccess,
+}: ReviewFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEventSuggestions, setShowEventSuggestions] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDraftModal, setShowDraftModal] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-  
+
+  // 임시저장 관련
+  const {
+    draft,
+    autoSaveDraft,
+    removeDraft,
+    hasDraft,
+    lastSavedText,
+  } = useReviewDraft(reviewId);
+
   // 기존 이벤트 정보 가져오기
   const { data: existingEvent } = api.events.getById.useQuery(
     { id: eventId! },
     { enabled: !!eventId }
   );
-  
+
   const {
     register,
     handleSubmit,
@@ -55,9 +77,9 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
   } = useForm<ReviewFormData>({
     resolver: zodResolver(reviewSchema),
     defaultValues: initialData || {
-      title: "",
+      title: '',
       eventId: eventId || undefined,
-      eventName: "",
+      eventName: '',
       overallRating: 0,
       imageUrls: [],
     },
@@ -65,13 +87,15 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
 
   const createReview = api.reviews.create.useMutation({
     onSuccess: () => {
+      removeDraft(); // 리뷰 작성 성공 시 임시저장 삭제
       onSuccess?.();
       router.refresh();
     },
   });
-  
+
   const updateReview = api.reviews.update.useMutation({
     onSuccess: () => {
+      removeDraft(); // 리뷰 수정 성공 시 임시저장 삭제
       onSuccess?.();
       router.refresh();
     },
@@ -100,8 +124,8 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
             key={event.id}
             type="button"
             onClick={() => {
-              setValue("eventId", event.id);
-              setValue("eventName", event.name);
+              setValue('eventId', event.id);
+              setValue('eventName', event.name);
               setSearchTerm(event.name);
               setShowEventSuggestions(false);
             }}
@@ -109,7 +133,9 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
           >
             <div className="font-medium">{event.name}</div>
             {event.location && (
-              <div className="text-sm text-muted-foreground">{event.location}</div>
+              <div className="text-sm text-muted-foreground">
+                {event.location}
+              </div>
             )}
           </button>
         ))}
@@ -122,22 +148,59 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
-  
+
   // 기존 이벤트가 있으면 자동으로 설정
   useEffect(() => {
     if (existingEvent) {
       setSearchTerm(existingEvent.name);
-      setValue("eventName", existingEvent.name);
+      setValue('eventName', existingEvent.name);
     } else if (initialData?.eventName) {
       setSearchTerm(initialData.eventName);
     }
   }, [existingEvent, initialData, setValue]);
 
+  // 임시저장 데이터가 있는지 확인하고 모달 표시
+  useEffect(() => {
+    if (hasDraft && !reviewId && !initialData) {
+      setShowDraftModal(true);
+    }
+  }, [hasDraft, reviewId, initialData]);
+
+  // 폼 데이터 변경 시 자동 저장
+  useEffect(() => {
+    const subscription = watch((data) => {
+      if (!reviewId) {
+        // 새 리뷰 작성일 때만 자동 저장
+        const cleanup = autoSaveDraft(data as Partial<ReviewFormData>);
+        return cleanup;
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, autoSaveDraft, reviewId]);
+
+  // 임시저장 데이터 복원
+  const restoreDraft = useCallback(() => {
+    if (draft) {
+      Object.entries(draft).forEach(([key, value]) => {
+        if (key !== 'lastSavedAt' && value !== undefined) {
+          setValue(key as keyof ReviewFormData, value);
+        }
+      });
+      if (draft.eventName) {
+        setSearchTerm(draft.eventName);
+      }
+    }
+    setShowDraftModal(false);
+  }, [draft, setValue]);
+
   const onSubmit = async (data: ReviewFormData) => {
     setIsSubmitting(true);
     try {
       const tags = data.tags
-        ? data.tags.split(",").map((tag) => tag.trim()).filter(Boolean)
+        ? data.tags
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean)
         : undefined;
 
       if (reviewId) {
@@ -155,7 +218,7 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
         });
       }
     } catch (error) {
-      console.error("리뷰 작성 실패:", error);
+      console.error('리뷰 작성 실패:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -166,8 +229,8 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
     field: keyof ReviewFormData,
     required = false
   ) => {
-    const value = watch(field) as number || 0;
-    
+    const value = (watch(field) as number) || 0;
+
     return (
       <div>
         <label className="mb-2 block text-sm font-medium text-foreground">
@@ -179,10 +242,10 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
               key={rating}
               type="button"
               onClick={() => setValue(field, rating)}
-              className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg border-2 text-sm sm:text-base transition-colors ${
+              className={`h-10 w-10 sm:h-10 sm:w-10 rounded-lg border-2 text-sm sm:text-base transition-colors touch-manipulation ${
                 value >= rating
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-background text-muted-foreground hover:border-muted-foreground"
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-background text-muted-foreground hover:border-muted-foreground'
               }`}
             >
               {rating}
@@ -190,120 +253,182 @@ export function ReviewForm({ eventId, reviewId, initialData, onSuccess }: Review
           ))}
         </div>
         {errors[field as keyof typeof errors] && (
-          <p className="mt-1 text-sm text-destructive">{errors[field as keyof typeof errors]?.message}</p>
+          <p className="mt-1 text-sm text-destructive">
+            {errors[field as keyof typeof errors]?.message}
+          </p>
         )}
       </div>
     );
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          제목 <span className="text-destructive">*</span>
-        </label>
-        <input
-          {...register("title")}
-          type="text"
-          placeholder="리뷰 제목을 입력하세요"
-          className="w-full rounded-lg border border-border px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none"
-        />
-        {errors.title && (
-          <p className="mt-1 text-sm text-destructive">{errors.title.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          이벤트/공연
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setShowEventSuggestions(true);
-              setValue("eventId", undefined);
-              setValue("eventName", e.target.value);
-            }}
-            onFocus={() => setShowEventSuggestions(true)}
-            placeholder="이벤트명을 입력하세요 (자유 입력 가능)"
-            className="w-full rounded-lg border border-border px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none"
-          />
-          {showEventSuggestions && debouncedSearchTerm.length > 0 && <EventSuggestions />}
+    <>
+      {/* 임시저장 복원 모달 */}
+      {showDraftModal && draft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="mb-2 text-lg font-semibold">
+              임시저장된 리뷰가 있습니다
+            </h3>
+            <p className="mb-4 text-sm text-gray-600">
+              {lastSavedText}에 임시저장된 리뷰가 있습니다. 이어서
+              작성하시겠습니까?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={restoreDraft}
+                className="flex-1 rounded-lg bg-purple-600 py-2 text-white hover:bg-purple-700"
+              >
+                이어서 작성
+              </button>
+              <button
+                onClick={() => {
+                  removeDraft();
+                  setShowDraftModal(false);
+                }}
+                className="flex-1 rounded-lg border border-gray-300 py-2 text-gray-700 hover:bg-gray-50"
+              >
+                새로 작성
+              </button>
+            </div>
+          </div>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          등록된 이벤트를 선택하거나 직접 입력할 수 있습니다
-        </p>
-      </div>
+      )}
 
-      {renderRatingInput("전체 경험", "overallRating", true)}
-      {renderRatingInput("음향", "soundRating")}
-      {renderRatingInput("시야", "viewRating")}
-      {renderRatingInput("안전", "safetyRating")}
-      {renderRatingInput("운영", "operationRating")}
-
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          구역/좌석
-        </label>
-        <input
-          {...register("seatOrArea")}
-          type="text"
-          placeholder="예: A구역 15열, 스탠딩 중앙"
-          className="w-full rounded-lg border border-border px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none"
-        />
-      </div>
-
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          리뷰 내용 <span className="text-destructive">*</span>
-        </label>
-        <textarea
-          {...register("content")}
-          rows={6}
-          placeholder="경험을 자세히 공유해주세요"
-          className="w-full rounded-lg border border-border px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none"
-        />
-        {errors.content && (
-          <p className="mt-1 text-sm text-destructive">{errors.content.message}</p>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* 임시저장 알림 */}
+        {lastSavedText && !reviewId && (
+          <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2 text-sm text-gray-600">
+            <span>✓ {lastSavedText}</span>
+            <button
+              type="button"
+              onClick={removeDraft}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              임시저장 삭제
+            </button>
+          </div>
         )}
-      </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          태그
-        </label>
-        <input
-          {...register("tags")}
-          type="text"
-          placeholder="음향좋음, 빠른입장, 화장실부족 (쉼표로 구분)"
-          className="w-full rounded-lg border border-border px-4 py-2.5 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none"
-        />
-      </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">
+            제목 <span className="text-destructive">*</span>
+          </label>
+          <input
+            {...register('title')}
+            type="text"
+            placeholder="리뷰 제목을 입력하세요"
+            className="w-full rounded-lg border border-border px-4 py-3 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none touch-manipulation"
+          />
+          {errors.title && (
+            <p className="mt-1 text-sm text-destructive">
+              {errors.title.message}
+            </p>
+          )}
+        </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          사진 (최대 3개)
-        </label>
-        <ImageUpload
-          value={watch("imageUrls") || []}
-          onChange={(urls) => setValue("imageUrls", urls)}
-          maxImages={3}
-        />
-      </div>
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">
+            이벤트/공연
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setShowEventSuggestions(true);
+                setValue('eventId', undefined);
+                setValue('eventName', e.target.value);
+              }}
+              onFocus={() => setShowEventSuggestions(true)}
+              placeholder="이벤트명을 입력하세요 (자유 입력 가능)"
+              className="w-full rounded-lg border border-border px-4 py-3 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none touch-manipulation"
+            />
+            {showEventSuggestions && debouncedSearchTerm.length > 0 && (
+              <EventSuggestions />
+            )}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            등록된 이벤트를 선택하거나 직접 입력할 수 있습니다
+          </p>
+        </div>
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-lg bg-primary py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {isSubmitting && (
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-        )}
-        {isSubmitting ? (reviewId ? "수정 중..." : "작성 중...") : (reviewId ? "리뷰 수정" : "리뷰 작성")}
-      </button>
-    </form>
+        {renderRatingInput('전체 경험', 'overallRating', true)}
+        {renderRatingInput('음향', 'soundRating')}
+        {renderRatingInput('시야', 'viewRating')}
+        {renderRatingInput('안전', 'safetyRating')}
+        {renderRatingInput('운영', 'operationRating')}
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">
+            구역/좌석
+          </label>
+          <input
+            {...register('seatOrArea')}
+            type="text"
+            placeholder="예: A구역 15열, 스탠딩 중앙"
+            className="w-full rounded-lg border border-border px-4 py-3 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none touch-manipulation"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">
+            리뷰 내용 <span className="text-destructive">*</span>
+          </label>
+          <textarea
+            {...register('content')}
+            rows={8}
+            placeholder="경험을 자세히 공유해주세요"
+            className="w-full rounded-lg border border-border px-4 py-3 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none touch-manipulation"
+          />
+          {errors.content && (
+            <p className="mt-1 text-sm text-destructive">
+              {errors.content.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">
+            태그
+          </label>
+          <input
+            {...register('tags')}
+            type="text"
+            placeholder="음향좋음, 빠른입장, 화장실부족 (쉼표로 구분)"
+            className="w-full rounded-lg border border-border px-4 py-3 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none touch-manipulation"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-foreground">
+            사진 (최대 3개)
+          </label>
+          <ImageUpload
+            value={watch('imageUrls') || []}
+            onChange={(urls) => setValue('imageUrls', urls)}
+            maxImages={3}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full rounded-lg bg-primary py-4 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation"
+        >
+          {isSubmitting && (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          )}
+          {isSubmitting
+            ? reviewId
+              ? '수정 중...'
+              : '작성 중...'
+            : reviewId
+              ? '리뷰 수정'
+              : '리뷰 작성'}
+        </button>
+      </form>
+    </>
   );
 }

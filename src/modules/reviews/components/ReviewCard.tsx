@@ -1,12 +1,13 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useAuth } from "@clerk/nextjs";
-import Link from "next/link";
-import { api } from "@/lib/trpc";
-import { ReportDialog } from "./ReportDialog";
-import { OptimizedImage } from "@/modules/shared/ui/components/OptimizedImage";
-import { type ReviewWithDetails } from "../types";
+import { useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
+import Link from 'next/link';
+import { api } from '@/lib/trpc';
+import { ReportDialog } from './ReportDialog';
+import { BlurImage } from '@/modules/shared/ui/components/BlurImage';
+import { type ReviewWithDetails } from '../types';
+import { OptimizedImage } from '@/modules/shared';
 
 interface ReviewCardProps {
   review: ReviewWithDetails;
@@ -16,7 +17,9 @@ export function ReviewCard({ review }: ReviewCardProps) {
   const { isSignedIn } = useAuth();
   const [likeCount, setLikeCount] = useState(review?.likeCount || 0);
   const [isLiked, setIsLiked] = useState(review?.isLiked || false);
-  const [isBookmarked, setIsBookmarked] = useState(review?.isBookmarked || false);
+  const [isBookmarked, setIsBookmarked] = useState(
+    review?.isBookmarked || false
+  );
   const [showReportDialog, setShowReportDialog] = useState(false);
 
   if (!review || !review.id) {
@@ -28,8 +31,8 @@ export function ReviewCard({ review }: ReviewCardProps) {
       // Optimistic update
       const newIsLiked = !isLiked;
       setIsLiked(newIsLiked);
-      setLikeCount(prev => newIsLiked ? prev + 1 : prev - 1);
-      
+      setLikeCount((prev) => (newIsLiked ? prev + 1 : prev - 1));
+
       // Return context for rollback
       return { previousIsLiked: isLiked, previousLikeCount: likeCount };
     },
@@ -52,7 +55,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
       // Optimistic update
       const newIsBookmarked = !isBookmarked;
       setIsBookmarked(newIsBookmarked);
-      
+
       // Return context for rollback
       return { previousIsBookmarked: isBookmarked };
     },
@@ -71,7 +74,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
 
   const handleLike = () => {
     if (!isSignedIn) {
-      alert("좋아요를 누르려면 로그인이 필요합니다.");
+      alert('좋아요를 누르려면 로그인이 필요합니다.');
       return;
     }
     toggleLike.mutate({ reviewId: review.id });
@@ -79,7 +82,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
 
   const handleBookmark = () => {
     if (!isSignedIn) {
-      alert("북마크하려면 로그인이 필요합니다.");
+      alert('북마크하려면 로그인이 필요합니다.');
       return;
     }
     toggleBookmark.mutate({ reviewId: review.id });
@@ -90,7 +93,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
       <svg
         key={i}
         className={`h-4 w-4 ${
-          i < rating ? "fill-foreground" : "fill-muted-foreground/30"
+          i < rating ? 'fill-foreground' : 'fill-muted-foreground/30'
         }`}
         viewBox="0 0 20 20"
       >
@@ -119,13 +122,13 @@ export function ReviewCard({ review }: ReviewCardProps) {
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xs font-medium text-muted-foreground sm:text-sm">
-                {review.user?.username?.[0]?.toUpperCase() || "?"}
+                {review.user?.username?.[0]?.toUpperCase() || '?'}
               </div>
             )}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-foreground text-sm sm:text-base">
-              {review.user?.username || "\uc54c \uc218 \uc5c6\uc74c"}
+              {review.user?.username || '\uc54c \uc218 \uc5c6\uc74c'}
             </p>
             {review.event && (
               <p className="truncate text-xs text-muted-foreground sm:text-sm">
@@ -135,7 +138,9 @@ export function ReviewCard({ review }: ReviewCardProps) {
           </div>
         </div>
         <time className="text-xs text-muted-foreground sm:text-sm">
-          {review.createdAt ? new Date(review.createdAt).toLocaleDateString("ko-KR") : ""}
+          {review.createdAt
+            ? new Date(review.createdAt).toLocaleDateString('ko-KR')
+            : ''}
         </time>
       </div>
 
@@ -168,13 +173,14 @@ export function ReviewCard({ review }: ReviewCardProps) {
               key={index}
               className="relative aspect-square overflow-hidden rounded-lg bg-muted"
             >
-              <OptimizedImage
+              <BlurImage
                 src={url}
                 alt={`리뷰 이미지 ${index + 1}`}
                 fill
                 className="object-cover"
-                priority={false}
+                priority={index === 0}
                 quality={75}
+                sizes="(max-width: 640px) 50vw, 33vw"
               />
             </div>
           ))}
@@ -202,7 +208,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
             className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
           >
             <svg
-              className={`h-5 w-5 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
+              className={`h-5 w-5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -223,7 +229,7 @@ export function ReviewCard({ review }: ReviewCardProps) {
             className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
           >
             <svg
-              className={`h-5 w-5 ${isBookmarked ? "fill-foreground" : ""}`}
+              className={`h-5 w-5 ${isBookmarked ? 'fill-foreground' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

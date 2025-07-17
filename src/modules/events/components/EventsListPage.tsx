@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@/lib/trpc';
@@ -10,6 +10,7 @@ import { EmptyState } from '@/modules/shared/ui/components/EmptyState';
 import { type EventWithStats } from '../types';
 import { type EventCategory } from '@/lib/db/schema';
 import { useAuth } from '@clerk/nextjs';
+import { useSwipeElement } from '@/modules/shared/hooks/useSwipe';
 
 // 카테고리 한글 변환 매핑
 const categoryLabels: Record<EventCategory, string> = {
@@ -33,6 +34,7 @@ export function EventsListPage() {
   const [category, setCategory] = useState<string>('all');
   const { isSignedIn } = useAuth();
   const { data, isLoading, error, refetch } = api.events.getAll.useQuery();
+  const filterRef = useRef<HTMLDivElement>(null);
 
   // API 응답에서 items 배열 추출
   const eventsList = data?.items || [];
@@ -41,6 +43,30 @@ export function EventsListPage() {
     if (!event) return false;
     if (category === 'all') return true;
     return event.category === category;
+  });
+
+  // 카테고리 필터 스와이프
+  const categories = [
+    'all',
+    'festival',
+    'concert',
+    'overseas_tour',
+    'performance',
+    'exhibition',
+  ];
+  const currentIndex = categories.indexOf(category);
+
+  useSwipeElement(filterRef, {
+    onSwipeLeft: () => {
+      if (currentIndex < categories.length - 1) {
+        setCategory(categories[currentIndex + 1]);
+      }
+    },
+    onSwipeRight: () => {
+      if (currentIndex > 0) {
+        setCategory(categories[currentIndex - 1]);
+      }
+    },
   });
 
   if (error) {
@@ -91,7 +117,10 @@ export function EventsListPage() {
       </div>
 
       {/* 카테고리 필터 */}
-      <div className="mb-6 flex gap-2 overflow-x-auto sm:mb-8">
+      <div
+        ref={filterRef}
+        className="mb-6 flex gap-2 overflow-x-auto scrollbar-hide sm:mb-8"
+      >
         <button
           onClick={() => setCategory('all')}
           className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
@@ -205,6 +234,8 @@ export function EventsListPage() {
                     alt={event.name}
                     fill
                     className="object-cover transition-transform sm:group-hover:scale-105"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    loading="lazy"
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">
