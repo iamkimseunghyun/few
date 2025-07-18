@@ -9,6 +9,8 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig: NextConfig = {
   // Turbopack configuration
   experimental: {
+    // Enable instrumentation hook for Sentry
+    instrumentationHook: true,
     // optimizePackageImports helps with tree-shaking
     optimizePackageImports: [
       '@clerk/nextjs',
