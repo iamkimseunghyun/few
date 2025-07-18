@@ -56,7 +56,7 @@ const eventTypeColors: Record<EventCategory, string> = {
   overseas_tour: '#10B981',
 };
 
-export function EventCalendar() {
+export default function EventCalendar() {
   const [view, setView] = useState<View>(Views.MONTH);
   const [date, setDate] = useState(new Date());
   // Fix: Change from string[] to EventCategory[]

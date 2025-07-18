@@ -1,11 +1,28 @@
 'use client';
 
-import { EventCalendar } from '@/modules/events/components/EventCalendar';
-import { api } from '@/lib/trpc';
+import { useCachedEvents, useCachedReviews } from '@/hooks/use-cached-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+// import { prefetchHomeData } from '@/lib/prefetch-utils';
 import Link from 'next/link';
-import { BestReviewsSection } from './BestReviewsSection';
+import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import { type EventCategory } from '@/lib/db/schema';
 import '@/modules/events/styles/calendar.css';
+
+// 동적 import로 초기 로딩 시간 단축
+const EventCalendar = dynamic(
+  () => import('@/modules/events/components/EventCalendar'),
+  { 
+    loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" />,
+    ssr: true 
+  }
+);
+
+const BestReviewsSection = dynamic(
+  () => import('./BestReviewsSection').then(mod => mod.BestReviewsSection),
+  { ssr: true }
+);
 
 // 카테고리 한글 변환 매핑
 const categoryLabels: Record<EventCategory, string> = {
@@ -17,15 +34,19 @@ const categoryLabels: Record<EventCategory, string> = {
 };
 
 export function HomePage() {
-  // Fetch recent reviews
-  const { data: recentReviews } = api.reviews.getAll.useQuery({
+  const queryClient = useQueryClient();
+  
+  // 홈페이지 데이터 프리페칭
+  useEffect(() => {
+    // void prefetchHomeData(queryClient);
+  }, [queryClient]);
+  
+  // 캐싱된 쿼리 사용
+  const { data: recentReviews } = useCachedReviews.list({
     limit: 3,
   });
 
-  // Fetch upcoming events
-  const { data: upcomingEvents } = api.events.getUpcoming.useQuery({
-    limit: 5,
-  });
+  const { data: upcomingEvents } = useCachedEvents.upcoming();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,226 +71,134 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Quick Links */}
-      <section className="border-t border-gray-200 bg-white px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Link
-              href="/events"
-              className="group rounded-lg border border-gray-200 p-6 text-center transition-all hover:border-purple-300 hover:shadow-md"
-            >
-              <div className="mb-2 text-purple-600">
-                <svg
-                  className="mx-auto h-8 w-8"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+      {/* Upcoming Events */}
+      {upcomingEvents && upcomingEvents.length > 0 && (
+        <section className="bg-white px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                다가오는 이벤트
+              </h2>
+              <Link
+                href="/events"
+                className="text-purple-600 hover:text-purple-700"
+              >
+                모두 보기 →
+              </Link>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {upcomingEvents.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.id}`}
+                  className="group overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-gray-900">이벤트 목록</h3>
-              <p className="mt-1 text-sm text-gray-600">
-                모든 공연과 페스티벌 확인
-              </p>
-            </Link>
-
-            <Link
-              href="/reviews"
-              className="group rounded-lg border border-gray-200 p-6 text-center transition-all hover:border-purple-300 hover:shadow-md"
-            >
-              <div className="mb-2 text-purple-600">
-                <svg
-                  className="mx-auto h-8 w-8"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                  />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-gray-900">리뷰 커뮤니티</h3>
-              <p className="mt-1 text-sm text-gray-600">
-                생생한 공연 후기 읽기
-              </p>
-            </Link>
-
-            <Link
-              href="/reviews/new"
-              className="group rounded-lg border border-gray-200 p-6 text-center transition-all hover:border-purple-300 hover:shadow-md"
-            >
-              <div className="mb-2 text-purple-600">
-                <svg
-                  className="mx-auto h-8 w-8"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-              </div>
-              <h3 className="font-semibold text-gray-900">리뷰 작성</h3>
-              <p className="mt-1 text-sm text-gray-600">
-                나의 공연 경험 공유하기
-              </p>
-            </Link>
+                  {event.posterUrl && (
+                    <div className="aspect-video overflow-hidden">
+                      <Image
+                        src={event.posterUrl}
+                        alt={event.name}
+                        width={400}
+                        height={225}
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <span className="mb-2 inline-block rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
+                      {categoryLabels[event.category as EventCategory] || event.category}
+                    </span>
+                    <h3 className="mb-2 text-lg font-semibold text-gray-900 group-hover:text-purple-600">
+                      {event.name}
+                    </h3>
+                    <p className="mb-3 text-sm text-gray-600">
+                      {event.description}
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <span>{event.location}</span>
+                      <span>
+                        {event.dates?.start ? new Date(event.dates.start).toLocaleDateString('ko-KR') : ''}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Best Reviews */}
+      {/* Best Reviews Section */}
       <BestReviewsSection />
 
-      {/* Recent Reviews & Upcoming Events */}
-      <section className="bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid gap-12 lg:grid-cols-2">
-            {/* Recent Reviews */}
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">최근 리뷰</h2>
-                <Link
-                  href="/reviews"
-                  className="text-sm font-medium text-purple-600 hover:text-purple-700"
-                >
-                  리뷰 모두 보기 →
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {recentReviews?.items && recentReviews.items.length > 0 ? (
-                  recentReviews.items.slice(0, 3).map((review) => (
-                    <div
-                      key={review.id}
-                      className="border-b border-gray-100 pb-4 last:border-0 last:pb-0"
-                    >
-                      <Link
-                        href={`/reviews/${review.id}`}
-                        className="block group"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            {review.title && (
-                              <h3 className="font-medium text-gray-900 group-hover:text-purple-600 transition-colors">
-                                {review.title}
-                              </h3>
-                            )}
-                            <p className="text-sm text-gray-600 line-clamp-2 mt-1">
-                              {review.content}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <svg
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < review.overallRating
-                                    ? 'fill-yellow-400'
-                                    : 'fill-gray-200'
-                                }`}
-                                viewBox="0 0 20 20"
-                              >
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                              </svg>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <span>{review.user?.username || '익명'}</span>
-                          <span>•</span>
-                          <span>
-                            {new Date(review.createdAt).toLocaleDateString(
-                              'ko-KR'
-                            )}
-                          </span>
-                        </div>
-                      </Link>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-gray-500 py-8">
-                    아직 리뷰가 없습니다.
-                  </p>
-                )}
-              </div>
+      {/* Recent Reviews */}
+      {recentReviews && recentReviews.items && recentReviews.items.length > 0 && (
+        <section className="bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-8 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+                최신 리뷰
+              </h2>
+              <Link
+                href="/reviews"
+                className="text-purple-600 hover:text-purple-700"
+              >
+                모두 보기 →
+              </Link>
             </div>
-
-            {/* Upcoming Events */}
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">
-                  다가오는 이벤트
-                </h2>
-                <Link
-                  href="/events"
-                  className="text-sm font-medium text-purple-600 hover:text-purple-700"
+            <div className="space-y-6">
+              {recentReviews.items.map((review) => (
+                <article
+                  key={review.id}
+                  className="rounded-lg bg-white p-6 shadow-sm"
                 >
-                  이벤트 모두 보기 →
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {upcomingEvents?.map((event) => (
-                  <Link
-                    key={event.id}
-                    href={`/events/${event.id}`}
-                    className="block group border-b border-gray-100 pb-4 last:border-0 last:pb-0"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 group-hover:text-purple-600 transition-colors">
-                          {event.name}
-                        </h3>
-                        <div className="mt-2 space-y-1">
-                          {event.dates?.start && (
-                            <p className="text-sm text-gray-600">
-                              📅{' '}
-                              {new Date(event.dates.start).toLocaleDateString(
-                                'ko-KR',
-                                {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                }
-                              )}
-                            </p>
-                          )}
-                          {event.location && (
-                            <p className="text-sm text-gray-600">
-                              📍 {event.location}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {event.category && (
-                        <span className="ml-4 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
-                          {categoryLabels[event.category as EventCategory] ||
-                            event.category}
-                        </span>
-                      )}
+                  <div className="mb-4 flex items-start justify-between">
+                    <div>
+                      <h3 className="mb-1 text-lg font-semibold text-gray-900">
+                        {review.event?.name || review.eventName}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        작성자: {review.user?.username}
+                      </p>
                     </div>
-                  </Link>
-                )) || (
-                  <p className="text-center text-gray-500 py-8">
-                    예정된 이벤트가 없습니다.
+                    <div className="text-right">
+                      <div className="mb-1 text-2xl font-bold text-purple-600">
+                        {review.overallRating}/5
+                      </div>
+                      <div className="text-xs text-gray-500">종합 평점</div>
+                    </div>
+                  </div>
+                  <p className="mb-4 text-gray-700 line-clamp-3">
+                    {review.content}
                   </p>
-                )}
-              </div>
+                  <Link
+                    href={`/reviews/${review.id}`}
+                    className="text-sm font-medium text-purple-600 hover:text-purple-700"
+                  >
+                    리뷰 전체 보기 →
+                  </Link>
+                </article>
+              ))}
             </div>
           </div>
+        </section>
+      )}
+
+      {/* CTA Section */}
+      <section className="bg-purple-700 px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl text-center">
+          <h2 className="mb-4 text-3xl font-bold text-white">
+            당신의 공연 경험을 공유해주세요
+          </h2>
+          <p className="mb-8 text-lg text-purple-100">
+            생생한 후기로 다른 관객들에게 도움을 주세요
+          </p>
+          <Link
+            href="/reviews/new"
+            className="inline-block rounded-lg bg-white px-8 py-3 font-semibold text-purple-700 transition hover:bg-purple-50"
+          >
+            리뷰 작성하기
+          </Link>
         </div>
       </section>
     </div>

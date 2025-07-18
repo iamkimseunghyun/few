@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,7 +17,7 @@ const reviewSchema = z.object({
     .min(1, '제목을 입력해주세요')
     .max(100, '제목은 100자 이내로 입력해주세요'),
   eventId: z.string().optional(),
-  eventName: z.string().optional(), // 자유 입력된 이벤트명
+  eventName: z.string().optional(),
   overallRating: z.number().min(1).max(5),
   soundRating: z.number().min(1).max(5).optional(),
   viewRating: z.number().min(1).max(5).optional(),
@@ -29,23 +29,35 @@ const reviewSchema = z.object({
     .min(10, '최소 10자 이상 입력해주세요')
     .max(5000, '최대 5000자까지 입력 가능합니다'),
   tags: z.string().optional(),
-  imageUrls: z.array(z.string()).optional(), // Deprecated
-  mediaItems: z.array(z.object({
-    url: z.string(),
-    type: z.enum(['image', 'video']),
-    thumbnailUrl: z.string().optional(),
-    duration: z.number().optional(),
-  })).optional(),
+  imageUrls: z.array(z.string()).optional(),
+  mediaItems: z
+    .array(
+      z.object({
+        url: z.string(),
+        type: z.enum(['image', 'video']),
+        thumbnailUrl: z.string().optional(),
+        duration: z.number().optional(),
+      })
+    )
+    .optional(),
 });
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
 
 interface ReviewFormProps {
   eventId?: string;
-  reviewId?: string; // 수정 모드인 경우
-  initialData?: Partial<ReviewFormData>; // 초기 데이터
+  reviewId?: string;
+  initialData?: Partial<ReviewFormData>;
   onSuccess?: () => void;
 }
+
+// 평점 필드 타입 정의
+type RatingField =
+  | 'overallRating'
+  | 'soundRating'
+  | 'viewRating'
+  | 'safetyRating'
+  | 'operationRating';
 
 export function ReviewForm({
   eventId,
@@ -61,13 +73,8 @@ export function ReviewForm({
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   // 임시저장 관련
-  const {
-    draft,
-    autoSaveDraft,
-    removeDraft,
-    hasDraft,
-    lastSavedText,
-  } = useReviewDraft(reviewId);
+  const { draft, autoSaveDraft, removeDraft, hasDraft, lastSavedText } =
+    useReviewDraft(reviewId);
 
   // 기존 이벤트 정보 가져오기
   const { data: existingEvent } = api.events.getById.useQuery(
@@ -95,28 +102,28 @@ export function ReviewForm({
 
   const createReview = api.reviews.create.useMutation({
     onSuccess: () => {
-      removeDraft(); // 리뷰 작성 성공 시 임시저장 삭제
+      removeDraft();
       toast.success('리뷰가 성공적으로 작성되었습니다!');
       onSuccess?.();
       router.refresh();
     },
     onError: (error) => {
       toast.error('리뷰 작성에 실패했습니다', {
-        description: error.message || '잠시 후 다시 시도해주세요.'
+        description: error.message || '잠시 후 다시 시도해주세요.',
       });
     },
   });
 
   const updateReview = api.reviews.update.useMutation({
     onSuccess: () => {
-      removeDraft(); // 리뷰 수정 성공 시 임시저장 삭제
+      removeDraft();
       toast.success('리뷰가 성공적으로 수정되었습니다!');
       onSuccess?.();
       router.refresh();
     },
     onError: (error) => {
       toast.error('리뷰 수정에 실패했습니다', {
-        description: error.message || '잠시 후 다시 시도해주세요.'
+        description: error.message || '잠시 후 다시 시도해주세요.',
       });
     },
   });
@@ -125,6 +132,125 @@ export function ReviewForm({
     { search: debouncedSearchTerm, limit: 5 },
     { enabled: debouncedSearchTerm.length > 0 }
   );
+
+  // 클릭 외부 감지
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.event-suggestions-container')) {
+        setShowEventSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 기존 이벤트 설정
+  useEffect(() => {
+    if (existingEvent) {
+      setSearchTerm(existingEvent.name);
+      setValue('eventName', existingEvent.name);
+    } else if (initialData?.eventName) {
+      setSearchTerm(initialData.eventName);
+    }
+  }, [existingEvent, initialData, setValue]);
+
+  // 임시저장 모달 표시
+  useEffect(() => {
+    if (hasDraft && !reviewId && !initialData) {
+      setShowDraftModal(true);
+    }
+  }, [hasDraft, reviewId, initialData]);
+
+  // 폼 데이터 자동 저장
+  useEffect(() => {
+    if (!reviewId) {
+      const subscription = watch((data) => {
+        autoSaveDraft(data as Partial<ReviewFormData>);
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [watch, autoSaveDraft, reviewId]);
+
+  // 임시저장 데이터 복원
+  const restoreDraft = () => {
+    if (draft) {
+      Object.entries(draft).forEach(([key, value]) => {
+        if (key !== 'lastSavedAt' && value !== undefined) {
+          // @ts-expect-error - draft의 동적 키 처리
+          setValue(key, value);
+        }
+      });
+    }
+  };
+
+  const onSubmit = async (data: ReviewFormData) => {
+    setIsSubmitting(true);
+    try {
+      const tags = data.tags
+        ? data.tags
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean)
+        : undefined;
+
+      const submitData = {
+        ...data,
+        tags,
+      };
+
+      if (reviewId) {
+        await updateReview.mutateAsync({
+          id: reviewId,
+          data: submitData,
+        });
+      } else {
+        await createReview.mutateAsync(submitData);
+      }
+    } catch (error) {
+      console.error('리뷰 작성 실패:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const renderRatingInput = (
+    label: string,
+    field: RatingField,
+    required = false
+  ) => {
+    const value = watch(field) || 0;
+
+    return (
+      <div>
+        <label className="mb-2 block text-sm font-medium text-foreground">
+          {label} {required && <span className="text-destructive">*</span>}
+        </label>
+        <div className="flex gap-1 sm:gap-2">
+          {[1, 2, 3, 4, 5].map((rating) => (
+            <button
+              key={rating}
+              type="button"
+              onClick={() => setValue(field, rating)}
+              className={`h-10 w-10 sm:h-10 sm:w-10 rounded-lg border-2 text-sm sm:text-base transition-colors touch-manipulation ${
+                value >= rating
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-background text-muted-foreground hover:border-muted-foreground'
+              }`}
+            >
+              {rating}
+            </button>
+          ))}
+        </div>
+        {errors[field] && (
+          <p className="mt-1 text-sm text-destructive">
+            {errors[field]?.message}
+          </p>
+        )}
+      </div>
+    );
+  };
 
   const EventSuggestions = () => {
     if (!eventSuggestions?.items || eventSuggestions.items.length === 0) {
@@ -163,141 +289,23 @@ export function ReviewForm({
     );
   };
 
-  useEffect(() => {
-    const handleClickOutside = () => setShowEventSuggestions(false);
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  // 기존 이벤트가 있으면 자동으로 설정
-  useEffect(() => {
-    if (existingEvent) {
-      setSearchTerm(existingEvent.name);
-      setValue('eventName', existingEvent.name);
-    } else if (initialData?.eventName) {
-      setSearchTerm(initialData.eventName);
-    }
-  }, [existingEvent, initialData, setValue]);
-
-  // 임시저장 데이터가 있는지 확인하고 모달 표시
-  useEffect(() => {
-    if (hasDraft && !reviewId && !initialData) {
-      setShowDraftModal(true);
-    }
-  }, [hasDraft, reviewId, initialData]);
-
-  // 폼 데이터 변경 시 자동 저장
-  useEffect(() => {
-    const subscription = watch((data) => {
-      if (!reviewId) {
-        // 새 리뷰 작성일 때만 자동 저장
-        const cleanup = autoSaveDraft(data as Partial<ReviewFormData>);
-        return cleanup;
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch, autoSaveDraft, reviewId]);
-
-  // 임시저장 데이터 복원
-  const restoreDraft = useCallback(() => {
-    if (draft) {
-      Object.entries(draft).forEach(([key, value]) => {
-        if (key !== 'lastSavedAt' && value !== undefined) {
-          setValue(key as keyof ReviewFormData, value);
-        }
-      });
-      if (draft.eventName) {
-        setSearchTerm(draft.eventName);
-      }
-    }
-    setShowDraftModal(false);
-  }, [draft, setValue]);
-
-  const onSubmit = async (data: ReviewFormData) => {
-    setIsSubmitting(true);
-    try {
-      const tags = data.tags
-        ? data.tags
-            .split(',')
-            .map((tag) => tag.trim())
-            .filter(Boolean)
-        : undefined;
-
-      if (reviewId) {
-        await updateReview.mutateAsync({
-          id: reviewId,
-          data: {
-            ...data,
-            tags,
-          },
-        });
-      } else {
-        await createReview.mutateAsync({
-          ...data,
-          tags,
-        });
-      }
-    } catch (error) {
-      console.error('리뷰 작성 실패:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const renderRatingInput = (
-    label: string,
-    field: keyof ReviewFormData,
-    required = false
-  ) => {
-    const value = (watch(field) as number) || 0;
-
-    return (
-      <div>
-        <label className="mb-2 block text-sm font-medium text-foreground">
-          {label} {required && <span className="text-destructive">*</span>}
-        </label>
-        <div className="flex gap-1 sm:gap-2">
-          {[1, 2, 3, 4, 5].map((rating) => (
-            <button
-              key={rating}
-              type="button"
-              onClick={() => setValue(field, rating)}
-              className={`h-10 w-10 sm:h-10 sm:w-10 rounded-lg border-2 text-sm sm:text-base transition-colors touch-manipulation ${
-                value >= rating
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-background text-muted-foreground hover:border-muted-foreground'
-              }`}
-            >
-              {rating}
-            </button>
-          ))}
-        </div>
-        {errors[field as keyof typeof errors] && (
-          <p className="mt-1 text-sm text-destructive">
-            {errors[field as keyof typeof errors]?.message}
-          </p>
-        )}
-      </div>
-    );
-  };
-
   return (
     <>
       {/* 임시저장 복원 모달 */}
       {showDraftModal && draft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+          <div className="mx-4 w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
             <h3 className="mb-2 text-lg font-semibold">
               임시저장된 리뷰가 있습니다
             </h3>
-            <p className="mb-4 text-sm text-gray-600">
+            <p className="mb-4 text-sm text-muted-foreground">
               {lastSavedText}에 임시저장된 리뷰가 있습니다. 이어서
               작성하시겠습니까?
             </p>
             <div className="flex gap-3">
               <button
                 onClick={restoreDraft}
-                className="flex-1 rounded-lg bg-purple-600 py-2 text-white hover:bg-purple-700"
+                className="flex-1 rounded-lg bg-primary py-2 text-primary-foreground hover:bg-primary/90"
               >
                 이어서 작성
               </button>
@@ -306,7 +314,7 @@ export function ReviewForm({
                   removeDraft();
                   setShowDraftModal(false);
                 }}
-                className="flex-1 rounded-lg border border-gray-300 py-2 text-gray-700 hover:bg-gray-50"
+                className="flex-1 rounded-lg border border-border py-2 text-foreground hover:bg-muted"
               >
                 새로 작성
               </button>
@@ -318,12 +326,12 @@ export function ReviewForm({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* 임시저장 알림 */}
         {lastSavedText && !reviewId && (
-          <div className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-2 text-sm text-gray-600">
+          <div className="flex items-center justify-between rounded-lg bg-muted px-4 py-2 text-sm text-muted-foreground">
             <span>✓ {lastSavedText}</span>
             <button
               type="button"
               onClick={removeDraft}
-              className="text-gray-500 hover:text-gray-700"
+              className="hover:text-foreground"
             >
               임시저장 삭제
             </button>
@@ -351,7 +359,7 @@ export function ReviewForm({
           <label className="mb-2 block text-sm font-medium text-foreground">
             이벤트/공연
           </label>
-          <div className="relative">
+          <div className="relative event-suggestions-container">
             <input
               type="text"
               value={searchTerm}
@@ -400,7 +408,7 @@ export function ReviewForm({
             {...register('content')}
             rows={8}
             placeholder="경험을 자세히 공유해주세요"
-            className="w-full rounded-lg border border-border px-4 py-3 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none touch-manipulation"
+            className="w-full rounded-lg border border-border px-4 py-3 text-foreground placeholder-muted-foreground focus:border-foreground focus:outline-none touch-manipulation resize-none"
           />
           {errors.content && (
             <p className="mt-1 text-sm text-destructive">
@@ -431,8 +439,8 @@ export function ReviewForm({
               setValue('mediaItems', items);
               // 호환성을 위해 imageUrls도 업데이트 (이미지만)
               const imageUrls = items
-                .filter(item => item.type === 'image')
-                .map(item => item.url);
+                .filter((item) => item.type === 'image')
+                .map((item) => item.url);
               setValue('imageUrls', imageUrls);
             }}
             maxItems={10}
@@ -445,7 +453,7 @@ export function ReviewForm({
           className="w-full rounded-lg bg-primary py-4 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed flex items-center justify-center gap-2 touch-manipulation"
         >
           {isSubmitting && (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
           )}
           {isSubmitting
             ? reviewId

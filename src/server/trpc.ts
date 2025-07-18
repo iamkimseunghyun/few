@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import { ZodError } from 'zod';
 import superjson from 'superjson';
+import * as Sentry from '@sentry/nextjs';
 import type { Context, AuthedContext } from './context';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -10,7 +11,26 @@ import { eq } from 'drizzle-orm';
  */
 const t = initTRPC.context<Context>().create({
   transformer: superjson,
-  errorFormatter({ shape, error }) {
+  errorFormatter({ shape, error, type, path, input, ctx }) {
+    // Sentry에 에러 보고 (예상치 못한 에러만)
+    if (error.code === 'INTERNAL_SERVER_ERROR') {
+      Sentry.captureException(error, {
+        contexts: {
+          trpc: {
+            type,
+            path,
+            input,
+          },
+        },
+        tags: {
+          trpc_procedure: path,
+          trpc_type: type,
+          trpc_code: error.code,
+        },
+        user: ctx?.userId ? { id: ctx.userId } : undefined,
+      });
+    }
+    
     return {
       ...shape,
       data: {

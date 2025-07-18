@@ -7,6 +7,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { api } from '@/lib/trpc';
 import { useAuth } from '@clerk/nextjs';
+import { CloudflareImage } from '@/components/CloudflareImage';
+import { isCloudflareImageUrl } from '@/lib/image-utils';
+import { extractImageId } from '@/lib/cloudflare-images';
 import {
   HeartIcon,
   ChatBubbleLeftIcon,
@@ -133,12 +136,21 @@ export function DiaryCard({ diary, user, isLiked: initialIsLiked, isSaved: initi
         <Link href={`/profile/${user?.id}`} className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-200">
             {user?.imageUrl && (
-              <Image
-                src={user.imageUrl}
-                alt={user.username || 'User'}
-                fill
-                className="object-cover"
-              />
+              isCloudflareImageUrl(user.imageUrl) ? (
+                <CloudflareImage
+                  imageId={extractImageId(user.imageUrl) || ''}
+                  alt={user.username || 'User'}
+                  purpose="avatar"
+                  containerClassName="w-10 h-10 rounded-full"
+                />
+              ) : (
+                <Image
+                  src={user.imageUrl}
+                  alt={user.username || 'User'}
+                  fill
+                  className="object-cover"
+                />
+              )
             )}
           </div>
           <div>

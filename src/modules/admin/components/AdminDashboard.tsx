@@ -11,7 +11,7 @@ import { UserManagement } from './UserManagement';
 import { LoadingSpinner, ConfirmModal, useToast } from '@/modules/shared';
 import { categoryLabels, type EventCategory } from '@/lib/db/schema';
 
-export function AdminDashboard() {
+export default function AdminDashboard() {
   const { isSignedIn } = useAuth();
   const { data: currentUser, isLoading: userLoading } =
     api.users.getCurrentUser.useQuery(undefined, { enabled: isSignedIn });

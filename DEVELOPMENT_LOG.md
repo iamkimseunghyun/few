@@ -74,6 +74,60 @@ bun update                 # 패키지 업데이트
 
 ---
 
+## 2025-01-18 - 성능 최적화 완료 ✅
+
+### 작업 내용
+
+1. **React Query 캐싱 최적화**
+   - 캐싱 전략 구현 (`src/lib/react-query-config.ts`)
+     - STATIC: 24시간 stale, 7일 GC (이벤트 정보 등)
+     - DYNAMIC: 5분 stale, 30분 GC (리뷰, 댓글 등)
+     - REALTIME: 0 stale, 5분 GC (알림, 채팅 등)
+     - USER: 10분 stale, 1시간 GC (프로필, 설정 등)
+   - 쿼리 키 팩토리 패턴 도입
+   - 프리페칭 유틸리티 구현 (`src/lib/prefetch-utils.ts`)
+   - React Query DevTools 추가 (개발 환경)
+
+2. **번들 사이즈 최적화**
+   - Webpack 코드 스플리팅 설정
+     - React, UI, Forms, Utils 등 청크 분리
+     - 공통 모듈 별도 청크 관리
+   - Tree shaking 최적화
+     - optimizePackageImports 설정 확대
+     - SWC minifier 활용
+   - 동적 import 시스템 구축
+     - `src/lib/dynamic-imports.ts` 헬퍼 함수
+     - 홈페이지 컴포넌트 lazy loading 적용
+   - 번들 분석기 추가 (`bun run analyze`)
+
+3. **Cloudflare Images 최적화**
+   - 이미지 변형(variants) 시스템 구현
+     - thumbnail (150x150), card (400x300), avatar (200x200)
+     - gallery (800x600), hero (1920x1080), public (1600x1600)
+   - CloudflareImage 컴포넌트 개발
+     - 반응형 이미지 로딩
+     - srcset 자동 생성
+     - 로딩 우선순위 최적화 (LCP 고려)
+   - 이미지 유틸리티 함수 구현
+   - 주요 컴포넌트 적용 완료
+     - EventsListPage, DiaryCard, MediaGallery
+
+4. **무한 스크롤 가상화**
+   - @tanstack/react-virtual 라이브러리 통합
+   - VirtualizedList 컴포넌트 구현
+     - 동적 아이템 높이 지원
+     - overscan 최적화
+   - VirtualizedGrid 반응형 그리드 지원
+   - DiaryFeed 가상화 적용
+     - 600px 예상 높이, overscan 2
+     - 한 번에 20개 아이템 로드
+
+### 성능 개선 효과
+- API 응답 캐싱으로 네트워크 요청 감소
+- 초기 번들 사이즈 감소 (코드 스플리팅)
+- 이미지 로딩 속도 향상 (Cloudflare 리사이징)
+- 대량 리스트 렌더링 성능 개선 (가상화)
+
 ## 2025-07-18 - Bun 패키지 매니저로 전환
 
 ### 전환 이유
@@ -160,6 +214,55 @@ bun update                 # 패키지 업데이트
 - ESLint: 0 errors, 0 warnings ✅
 - TypeScript 빌드: 성공 ✅
 - 모든 이미지 최적화 완료 ✅
+
+## 2025-01-18 - Sentry 에러 모니터링 구현 ✅
+
+### 작업 내용
+
+1. **Sentry 설정 파일 생성**
+   - `sentry.client.config.ts`: 클라이언트 측 에러 추적
+   - `sentry.server.config.ts`: 서버 측 에러 추적
+   - `sentry.edge.config.ts`: Edge 런타임 에러 추적
+   - 환경별 샘플링 비율 설정 (프로덕션 10%, 개발 100%)
+   - 민감한 정보 자동 필터링 (쿠키, 이메일 등)
+
+2. **사용자 컨텍스트 추적**
+   - `SentryUserContext` 컴포넌트 구현
+   - Clerk 인증 정보와 Sentry 연동
+   - 사용자 ID 자동 추적 (이메일 제외)
+
+3. **ErrorBoundary 강화**
+   - Sentry 에러 보고 통합
+   - 컴포넌트 스택 추적
+   - 사용자 피드백 다이얼로그 지원
+   - 한글 UI 메시지
+
+4. **커스텀 에러 유틸리티**
+   - `sentry-utils.ts` 헬퍼 함수 모음
+   - API 에러, 폼 에러, 미디어 에러, 성능 이슈 전용 함수
+   - 민감한 정보 자동 제거 (password, token, secret)
+   - 브레드크럼 추가 헬퍼
+
+5. **tRPC 에러 통합**
+   - 서버 에러 자동 보고 (INTERNAL_SERVER_ERROR)
+   - 요청 컨텍스트 추가 (path, type, input)
+   - 사용자 정보 연결
+
+6. **고급 기능 설정**
+   - Session Replay (프로덕션 10% 샘플링)
+   - 성능 모니터링 (프로덕션 10% 샘플링)
+   - 네트워크 요청 추적
+   - 브라우저 추적 통합
+
+7. **환경 변수 설정**
+   - `.env.example` 업데이트
+   - Sentry DSN, 조직, 프로젝트, 토큰 설정
+
+### 성과
+- ✅ 포괄적인 에러 모니터링 시스템 구축
+- ✅ 자동 에러 수집 및 사용자 컨텍스트 추적
+- ✅ 성능 문제 감지 및 세션 리플레이
+- ✅ 민감한 정보 보호 및 필터링
 
 ## 2025-01-17 ~ 2025-07-17 - 다이어리 기능 구현 & 모바일 최적화
 
@@ -324,11 +427,11 @@ bun update                 # 패키지 업데이트
 
 ### 우선순위 높음 ⭐⭐⭐
 
-1. **성능 최적화**
-   - [ ] React Query 설정 최적화로 API 응답 캐싱 개선
-   - [ ] 번들 사이즈 최적화 (코드 스플리팅, tree shaking)
-   - [ ] Cloudflare Images 리사이징 API 활용한 이미지 최적화
-   - [ ] 무한 스크롤에 가상화(virtualization) 적용
+1. **성능 최적화** ✅ (2025-01-18 완료)
+   - [x] React Query 설정 최적화로 API 응답 캐싱 개선
+   - [x] 번들 사이즈 최적화 (코드 스플리팅, tree shaking)
+   - [x] Cloudflare Images 리사이징 API 활용한 이미지 최적화
+   - [x] 무한 스크롤에 가상화(virtualization) 적용
 
 2. **테스트 구축**
    - [ ] E2E 테스트 - Playwright 설정 및 핵심 시나리오 테스트 구현
@@ -336,7 +439,7 @@ bun update                 # 패키지 업데이트
    - [ ] 통합 테스트 - API 라우트 테스트 구현
 
 3. **모니터링 구축**
-   - [ ] Sentry 재설정 - 에러 모니터링 활성화
+   - [x] Sentry 재설정 - 에러 모니터링 활성화 ✅ (2025-01-18 완료)
    - [ ] Analytics 설정 - Google Analytics 또는 Vercel Analytics 추가
    - [ ] Web Vitals 측정 - 성능 모니터링 구현
 
@@ -372,13 +475,15 @@ bun update                 # 패키지 업데이트
 
 - **Frontend**: Next.js 15.3.5, React 19, TypeScript
 - **Styling**: Tailwind CSS v4, CSS Modules
-- **State**: TanStack Query v5, Zustand
+- **State**: TanStack Query v5 (with DevTools), Zustand
 - **Backend**: tRPC v11, Drizzle ORM
 - **Database**: Neon (PostgreSQL)
 - **Auth**: Clerk
-- **Media**: Cloudinary (이미지), Cloudflare Stream (동영상)
+- **Media**: Cloudinary (이미지), Cloudflare Images (최적화), Cloudflare Stream (동영상)
+- **Performance**: @tanstack/react-virtual (가상화), @next/bundle-analyzer
+- **Package Manager**: Bun
 - **Deployment**: Vercel
-- **Monitoring**: Sentry (설정 필요)
+- **Monitoring**: Sentry (설정 완료)
 
 ## 🔧 주요 설정 파일
 

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useRef, useState } from "react";
-import Image from "next/image";
-import { useImageUpload } from "../hooks/useImageUpload";
+import { useRef, useState } from 'react';
+import Image from 'next/image';
+import { useImageUpload } from '@/modules/shared';
 
 interface ImageUploadProps {
   value: string[];
@@ -10,14 +10,18 @@ interface ImageUploadProps {
   maxImages?: number;
 }
 
-export function ImageUpload({ value, onChange, maxImages = 3 }: ImageUploadProps) {
+export function ImageUpload({
+  value,
+  onChange,
+  maxImages = 3,
+}: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { upload, uploading } = useImageUpload();
   const [localError, setLocalError] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     if (files.length + value.length > maxImages) {
       setLocalError(`최대 ${maxImages}개의 이미지만 업로드할 수 있습니다.`);
       return;
@@ -30,12 +34,12 @@ export function ImageUpload({ value, onChange, maxImages = 3 }: ImageUploadProps
       const newUrls = await Promise.all(uploadPromises);
       onChange([...value, ...newUrls]);
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error('Upload error:', error);
     }
 
     // Reset input
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
@@ -61,7 +65,12 @@ export function ImageUpload({ value, onChange, maxImages = 3 }: ImageUploadProps
               onClick={() => removeImage(index)}
               className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -72,7 +81,7 @@ export function ImageUpload({ value, onChange, maxImages = 3 }: ImageUploadProps
             </button>
           </div>
         ))}
-        
+
         {value.length < maxImages && (
           <button
             type="button"
@@ -106,9 +115,7 @@ export function ImageUpload({ value, onChange, maxImages = 3 }: ImageUploadProps
         )}
       </div>
 
-      {localError && (
-        <p className="text-sm text-red-600">{localError}</p>
-      )}
+      {localError && <p className="text-sm text-red-600">{localError}</p>}
 
       <input
         ref={fileInputRef}

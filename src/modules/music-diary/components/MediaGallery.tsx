@@ -4,6 +4,9 @@ import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { ChevronLeftIcon, ChevronRightIcon, PlayIcon } from '@heroicons/react/24/outline';
 import { useSwipeElement } from '@/modules/shared/hooks/useSwipe';
+import { CloudflareImage } from '@/components/CloudflareImage';
+import { isCloudflareImageUrl } from '@/lib/image-utils';
+import { extractImageId } from '@/lib/cloudflare-images';
 
 interface MediaItem {
   url: string;
@@ -73,25 +76,48 @@ export function MediaGallery({ media, isInteractive = true }: MediaGalleryProps)
         {media.map((item, index) => (
           <div key={index} className="w-full h-full flex-shrink-0 relative">
             {item.type === 'image' ? (
-              <Image
-                src={item.url}
-                alt={`Photo ${index + 1}`}
-                fill
-                className="object-contain"
-                priority={index === 0}
-                loading={index === 0 ? 'eager' : 'lazy'}
-              />
+              isCloudflareImageUrl(item.url) ? (
+                <CloudflareImage
+                  imageId={extractImageId(item.url) || ''}
+                  alt={`Photo ${index + 1}`}
+                  purpose="gallery"
+                  variants={['gallery', 'public']}
+                  containerClassName="w-full h-full"
+                  className="object-contain"
+                  position={index === 0 ? 'above-fold' : 'lazy'}
+                  priority={index === 0}
+                />
+              ) : (
+                <Image
+                  src={item.url}
+                  alt={`Photo ${index + 1}`}
+                  fill
+                  className="object-contain"
+                  priority={index === 0}
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                />
+              )
             ) : (
               <div className="relative w-full h-full flex items-center justify-center">
                 {/* Video Thumbnail */}
                 {!isVideoPlaying && item.thumbnailUrl && index === currentIndex && (
                   <>
-                    <Image
-                      src={item.thumbnailUrl}
-                      alt={`Video thumbnail ${index + 1}`}
-                      fill
-                      className="object-contain"
-                    />
+                    {isCloudflareImageUrl(item.thumbnailUrl) ? (
+                      <CloudflareImage
+                        imageId={extractImageId(item.thumbnailUrl) || ''}
+                        alt={`Video thumbnail ${index + 1}`}
+                        purpose="gallery"
+                        containerClassName="w-full h-full"
+                        className="object-contain"
+                      />
+                    ) : (
+                      <Image
+                        src={item.thumbnailUrl}
+                        alt={`Video thumbnail ${index + 1}`}
+                        fill
+                        className="object-contain"
+                      />
+                    )}
                     <button
                       onClick={() => setIsVideoPlaying(true)}
                       className="absolute inset-0 flex items-center justify-center"

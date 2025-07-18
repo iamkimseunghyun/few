@@ -11,6 +11,9 @@ import { type EventWithStats } from '../types';
 import { type EventCategory } from '@/lib/db/schema';
 import { useAuth } from '@clerk/nextjs';
 import { useSwipeElement } from '@/modules/shared/hooks/useSwipe';
+import { CloudflareImage } from '@/components/CloudflareImage';
+import { isCloudflareImageUrl } from '@/lib/image-utils';
+import { extractImageId } from '@/lib/cloudflare-images';
 
 // 카테고리 한글 변환 매핑
 const categoryLabels: Record<EventCategory, string> = {
@@ -229,14 +232,27 @@ export function EventsListPage() {
                 className="block relative aspect-square sm:aspect-[16/9] overflow-hidden bg-gray-100"
               >
                 {event.posterUrl ? (
-                  <Image
-                    src={event.posterUrl}
-                    alt={event.name}
-                    fill
-                    className="object-cover transition-transform sm:group-hover:scale-105"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    loading="lazy"
-                  />
+                  isCloudflareImageUrl(event.posterUrl) ? (
+                    <CloudflareImage
+                      imageId={extractImageId(event.posterUrl) || ''}
+                      alt={event.name}
+                      purpose="list"
+                      aspectRatio="square"
+                      containerClassName="w-full h-full sm:aspect-[16/9]"
+                      className="transition-transform sm:group-hover:scale-105"
+                      position={filteredEvents.indexOf(event) < 3 ? 'above-fold' : 'below-fold'}
+                    />
+                  ) : (
+                    <Image
+                      src={event.posterUrl}
+                      alt={event.name}
+                      fill
+                      className="object-cover transition-transform sm:group-hover:scale-105"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      loading={filteredEvents.indexOf(event) < 3 ? 'eager' : 'lazy'}
+                      priority={filteredEvents.indexOf(event) < 3}
+                    />
+                  )
                 ) : (
                   <div className="flex h-full items-center justify-center">
                     <svg

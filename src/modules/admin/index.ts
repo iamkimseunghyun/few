@@ -1,5 +1,5 @@
 // Components
-export { AdminDashboard } from "./components/AdminDashboard";
+export { default as AdminDashboard } from "./components/AdminDashboard";
 export { NewEventPage } from "./components/NewEventPage";
 export { EditEventPage } from "./components/EditEventPage";
 

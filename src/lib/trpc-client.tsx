@@ -1,11 +1,13 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { httpLink, loggerLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
 import { useState } from 'react';
 import { type AppRouter } from '@/server/routers/_app';
 import superjson from 'superjson';
+import { defaultQueryOptions } from './react-query-config';
 
 export const api = createTRPCReact<AppRouter>();
 
@@ -24,31 +26,7 @@ export function TRPCReactProvider(props: {
   const [queryClient] = useState(
     () =>
       new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 1000 * 60 * 5, // 5 minutes
-            gcTime: 1000 * 60 * 10, // 10 minutes (cacheTime is now gcTime in v5)
-            refetchOnWindowFocus: false,
-            refetchOnReconnect: 'always',
-            retry: (failureCount, error) => {
-              // Don't retry on 4xx errors
-              const httpStatus = (error as { data?: { httpStatus?: number } })?.data?.httpStatus;
-              if (
-                httpStatus &&
-                httpStatus >= 400 &&
-                httpStatus < 500
-              ) {
-                return false;
-              }
-              return failureCount < 3;
-            },
-            retryDelay: (attemptIndex) =>
-              Math.min(1000 * 2 ** attemptIndex, 30000),
-          },
-          mutations: {
-            retry: 1,
-          },
-        },
+        defaultOptions: defaultQueryOptions,
       })
   );
 
@@ -77,6 +55,7 @@ export function TRPCReactProvider(props: {
     <QueryClientProvider client={queryClient}>
       <api.Provider client={trpcClient} queryClient={queryClient}>
         {props.children}
+        {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
       </api.Provider>
     </QueryClientProvider>
   );
