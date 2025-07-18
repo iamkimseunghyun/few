@@ -97,7 +97,13 @@ export const reviews = pgTable('reviews', {
   // Details
   seatOrArea: varchar('seat_or_area', { length: 100 }),
   content: text('content').notNull(),
-  imageUrls: json('image_urls').$type<string[]>(),
+  imageUrls: json('image_urls').$type<string[]>(), // Deprecated - use mediaItems
+  mediaItems: json('media_items').$type<Array<{
+    url: string;
+    type: 'image' | 'video';
+    thumbnailUrl?: string;
+    duration?: number;
+  }>>().default([]),
   tags: json('tags').$type<string[]>(),
   // Review quality metrics
   likeCount: integer('like_count').default(0).notNull(),
@@ -227,6 +233,12 @@ export const reviewHelpful = pgTable('review_helpful', {
     .notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// Export music diary tables
+export * from './schema/music-diary';
+
+// Export follows table
+export * from './schema/follows';
 
 // Type exports for TypeScript
 export type User = typeof users.$inferSelect;

@@ -4,110 +4,206 @@
 
 ### 프로덕션
 
-- **URL**: https://few-kaka-projects.vercel.app/
+- **URL**: https://few-theta.vercel.app/
 - **배포일**: 2025-07-16
 - **상태**: MVP 완성 ✅
 
 ### 개발 환경 설정
 
+> **📦 Package Manager**: 이제 Bun을 사용합니다! (npm 대신)
+
 ```bash
+# 0. Bun 설치 (아직 없다면)
+curl -fsSL https://bun.sh/install | bash
+
 # 1. 환경 변수 설정
-cp .env.example .env.local
+cp .env.local
 # Clerk, Neon Database URL, Cloudinary 설정 필요
 
 # 2. 의존성 설치
-npm install
+bun install
 
 # 3. 데이터베이스 셋업
-npm run db:setup
-npm run db:migrate
-npm run db:seed
+bun run db:setup
+bun run db:migrate
+bun run db:seed
 
 # 4. 개발 서버 실행
-npm run dev
+bun run dev
 ```
 
 ### 주요 명령어
 
 ```bash
 # 관리자 설정
-npm run set-admin <email-or-username>
+bun run set-admin <email-or-username>
 
 # 데이터베이스 관리
-npm run db:studio          # Drizzle Studio 실행
-npm run db:push            # 스키마 푸시
-npm run db:migrate         # 마이그레이션 실행
+bun run db:studio          # Drizzle Studio 실행
+bun run db:push            # 스키마 푸시
+bun run db:migrate         # 마이그레이션 실행
 
 # 개발
-npm run dev                # 개발 서버 (http://localhost:3030)
-npm run build              # 프로덕션 빌드
-npm run lint               # ESLint 실행
+bun run dev                # 개발 서버 (http://localhost:3030)
+bun run build              # 프로덕션 빌드
+bun run lint               # ESLint 실행
+
+# 패키지 관리
+bun add <package>          # 패키지 추가
+bun remove <package>       # 패키지 제거
+bun update                 # 패키지 업데이트
 ```
+
+### Bun 사용의 장점
+- ⚡ **빠른 패키지 설치**: npm보다 3-10배 빠른 의존성 설치
+- 🔧 **내장 기능**: TypeScript, JSX, .env 파일 자동 지원
+- 📦 **효율적인 캐시**: 더 작은 디스크 사용량
+- 🚀 **빠른 스크립트 실행**: 개발 서버 시작이 더 빠름
+
+### 주의사항
+- Next.js 빌드 시간은 npm과 동일 (Next.js가 Node.js 기반이므로)
 
 ### 핵심 페이지
 
 - 홈: `/`
 - 이벤트 목록: `/events`
-- 리뷰 작성: `/reviews/new`
-- 관리자: `/admin` (관리자만)
-- 프로필: `/profile`
+- 리뷰 목록: `/reviews`
+- 리뷰 작성: `/reviews/new` (로그인 필요)
+- 프로필: `/profile` (로그인 필요)
+- 관리자: `/admin` (관리자 권한 필요)
 
 ---
 
-## 📊 현재 상태 요약
+## 2025-07-18 - Bun 패키지 매니저로 전환
 
-### MVP 완성도: 100% ✅
+### 전환 이유
+- npm의 느린 설치 속도와 deprecation warning 문제
+- Bun의 뛰어난 성능과 개발자 경험
+- TypeScript, JSX 내장 지원으로 빠른 개발
 
-**프로젝트명**: few (Festival + View)  
-**컨셉**: 음악 액티비티 공유 플랫폼 (리뷰 커뮤니티에서 피벗 중)
+### 변경 사항
+- 모든 `npm` 명령어를 `bun`으로 변경
+- `package-lock.json` → `bun.lockb` (바이너리 락파일)
+- 더 빠른 의존성 설치 및 스크립트 실행
 
-### 기술 스택
+## 2025-07-18 - 런타임 에러 완전 해결 ✅
 
-- **Frontend**: Next.js 15.3.5, React 19, TypeScript 5.7
-- **Styling**: Tailwind CSS v4 (Lightning CSS)
-- **Backend**: tRPC v11 (App Router)
-- **Database**: PostgreSQL (Neon) - Serverless 최적화
-- **ORM**: Drizzle ORM v0.44
-- **Auth**: Clerk
-- **Storage**: Cloudinary (이미지)
-- **Calendar**: react-big-calendar
+### 문제 분석
+- "Event handlers cannot be passed to Client Component props" 에러가 계속 발생
+- Sentry 대시보드에서 확인한 에러 정보:
+  - 에러 위치: 홈페이지(`/`) 로딩 시
+  - 문제 요소: `{onClick: function onClick, className: ..., children: ...}`
+  - digest: '2724926399'
 
-### 주요 기능 체크리스트
+### 근본 원인 발견
+- **문제**: `app/layout.tsx`에서 Server Component인 RootLayout이 Client Component인 `ClerkProvider`를 직접 사용
+- Server Component에서 `headers()` 함수를 호출하면서 Client Component에 전달하려고 시도
+- Next.js 15와 React 19의 엄격한 Server/Client Component 경계 검사로 인한 에러
 
-- ✅ **캘린더 중심 UI**: 월/주/일 뷰, 카테고리별 색상
-- ✅ **이벤트 관리**: 관리자 전용, 5개 카테고리 (페스티벌/콘서트/내한공연/공연/전시)
-- ✅ **리뷰 시스템**: 구조화된 평점, 이미지 업로드, 태그
-- ✅ **검색**: 통합 검색 (이벤트/리뷰), 실시간 결과
-- ✅ **소셜**: 좋아요/북마크/댓글, 리뷰어 레벨
-- ✅ **관리자**: DB 기반 권한, 대시보드, 사용자 관리
-- ✅ **프로필**: 작성 리뷰/북마크/통계
-- ✅ **베스트 리뷰**: 자동 선정 알고리즘
-- ✅ **알림**: UI 구현 (실제 발송은 Phase 2)
-- ✅ **공개 라우팅**: 비로그인 사용자도 이벤트/리뷰 열람 가능
-- ✅ **카테고리 한글화**: 모든 카테고리 표시를 한글로 통일
-- ✅ **모바일 UX**: React Native WebView 최적화
-- ✅ **리뷰 자동 저장**: 3초 디바운스, LocalStorage 활용
-- ✅ **이미지 최적화**: Next.js Image 컴포넌트, lazy loading, blur placeholder
+### 해결 방법 (Provider 분리 패턴 적용)
+1. **`src/app/providers.tsx` 생성**
+   ```typescript
+   'use client';
+   
+   export function Providers({ children }: { children: React.ReactNode }) {
+     return (
+       <ClerkProvider>
+         <ThemeProvider>
+           <TRPCReactProvider>
+             {children}
+           </TRPCReactProvider>
+         </ThemeProvider>
+       </ClerkProvider>
+     );
+   }
+   ```
 
-### 최근 개선사항
+2. **`app/layout.tsx` 수정**
+   - `async` 함수에서 일반 함수로 변경
+   - `headers()` 호출 및 관련 코드 제거
+   - 모든 Provider를 `<Providers>` 컴포넌트로 교체
+   - Server Component 유지하면서 metadata 설정 가능
 
-- 모바일 UX 개선 (하단 네비게이션, 스와이프 제스처)
-- 리뷰 자동 저장 기능 (작성 중 실수로 종료해도 복구 가능)
-- 이미지 최적화 (WebP 포맷, srcset, lazy loading)
-- 공개 라우팅 구현 (/events, /reviews 비로그인 접근 가능)
-- 카테고리 한글 표시 통일 (페스티벌, 콘서트, 내한공연, 공연, 전시)
-- 카테고리 필터링 버그 수정 (enum 타입 매칭)
-- Neon 데이터베이스 연결 안정화
+3. **`src/lib/trpc-client.tsx` 수정**
+   - `headers` prop 제거
+   - 더 간단한 구조로 개선
 
-### 알려진 이슈
+### 성과
+- ✅ "Event handlers cannot be passed to Client Component props" 에러 완전 해결
+- ✅ Server Component의 이점 유지 (SEO, 성능)
+- ✅ 코드 구조 개선 (Provider 로직 분리)
+- ✅ Next.js 15 & React 19 호환성 확보
 
-- 이메일 알림 미구현 (Phase 2)
-- 모바일 앱 래퍼 미구현
-- 실시간 기능 제한적 (polling 사용)
+## 2025-07-18 - 코드 품질 개선 및 빌드 오류 수정
 
----
+### 수행한 작업
 
-## 📅 개발 히스토리
+1. **ESLint 오류 수정 (50개 이상)**
+   - 모든 `<img>` 태그를 Next.js `<Image>` 컴포넌트로 교체
+   - 사용하지 않는 변수 및 import 제거
+   - TypeScript `any` 타입을 구체적인 타입으로 변경
+   - React Hook 규칙 위반 수정
+
+2. **TypeScript 타입 오류 해결**
+   - `ReviewWithDetails` 인터페이스에서 존재하지 않는 필드 제거
+   - API 응답 구조와 컴포넌트 기대값 불일치 수정
+   - Zod 스키마와 실제 데이터 구조 동기화
+   - NonNullable 유틸리티 타입 활용으로 null 처리 개선
+
+3. **주요 파일 수정 내역**
+   - `/src/lib/trpc-server.ts`: AbortSignal 타입 이슈 해결
+   - `/src/modules/reviews/types/index.ts`: DB 스키마와 타입 동기화
+   - `/src/modules/music-diary/components/`: API 응답 구조 접근 방식 수정
+   - `/src/server/api/routers/`: 누락된 필드 추가 및 SQL 쿼리 개선
+
+### 성과
+- ESLint: 0 errors, 0 warnings ✅
+- TypeScript 빌드: 성공 ✅
+- 모든 이미지 최적화 완료 ✅
+
+## 2025-01-17 ~ 2025-07-17 - 다이어리 기능 구현 & 모바일 최적화
+
+### 다이어리 (음악 일기) 기능 - 완성 ✅
+
+1. **핵심 기능**
+   - 이벤트 참여 일기 작성 (사진, 동영상 포함)
+   - 공개/비공개 설정
+   - 셋리스트 기록
+   - 댓글 및 좋아요
+   - 이미지/동영상 캐러셀
+
+2. **기술적 특징**
+   - Cloudflare Images & Stream 연동
+   - 미디어 업로드 최적화
+   - 반응형 캐러셀 UI
+
+3. **DB 스키마**
+   - `music_diaries` 테이블 추가
+   - `diary_comments`, `diary_likes` 관계 테이블
+   - 미디어 메타데이터 JSON 저장
+
+4. **성능 최적화**
+   - 이미지 리사이징 API 활용
+   - 비디오 스트리밍 최적화
+   - 캐러셀 transform 애니메이션
+
+5. **UI/UX 개선**
+   - 모달 기반 상세 보기
+   - 스와이프 제스처 지원
+   - 반응형 그리드 레이아웃
+
+6. **성능 최적화**
+   - 이미지 lazy loading
+   - 캐러셀 transform 애니메이션
+   - 중복 트랜지션 방지
+   - SSR 호환성 보장
+
+#### 기술적 특징
+- **tRPC v11**: 타입 안전한 API
+- **Drizzle ORM**: PostgreSQL 스키마 관리
+- **Next.js 15.3.5**: App Router, 인터셉팅 라우트
+- **Tailwind CSS v4**: 반응형 디자인
+- **React 19**: use() hook 활용
 
 ### 2025-01-17 - 모바일 UX 개선 & 성능 최적화
 
@@ -197,177 +293,103 @@ npm run lint               # ESLint 실행
 
 ### 2025-07-16 - MVP 완성 & Vercel 배포 🎉
 
-#### 오전 - 고급 기능 구현
+#### 구현 완료된 기능
+1. **사용자 인증** (Clerk)
+   - 소셜 로그인 (Google, Kakao)
+   - 프로필 관리
 
-1. **관리자 대시보드 확장**
-   - 페이지네이션, 검색, 필터링
-   - 사용자 관리 UI
-   - 베스트 리뷰 업데이트
+2. **이벤트 관리**
+   - 이벤트 목록/상세 보기
+   - 카테고리별 필터링
+   - 관리자 CRUD
 
-2. **캘린더 필터링**
-   - 카테고리/지역 복수 선택
-   - 서버사이드 필터링
-   - 접이식 필터 패널
+3. **리뷰 시스템**
+   - 다면 평가 (종합/음향/시야/안전/운영)
+   - 이미지 업로드 (Cloudinary)
+   - 좋아요/북마크
+   - 베스트 리뷰 선정
 
-3. **리뷰 시스템 고도화**
-   - 베스트 리뷰 (자동 선정)
-   - 리뷰어 레벨 (🌱→🌿→🌳→⭐)
-   - 도움이 됨 투표
-   - 고급 정렬/필터
+4. **커뮤니티 기능**
+   - 댓글 시스템
+   - 팔로우/팔로잉
+   - 알림 시스템
 
-4. **이벤트 북마크**
-   - 관심 이벤트 저장
-   - 프로필 페이지 통합
-
-#### 저녁 - Vercel 배포
-
-1. **빌드 에러 해결**
-   - lightningcss dependencies 이동
-   - TypeScript 타입 오류 수정
-   - vercel.json 설정 (icn1 리전)
-
-2. **배포 완료**
-   - URL: https://few-kaka-projects.vercel.app/
-   - 모든 환경 변수 설정
-   - 프로덕션 테스트 완료
-
-### 2025-07-15 - 브랜딩 변경 & 관리자 시스템
-
-1. **브랜딩 피벗**
-   - "소수의 취향" → "우리의 취향"
-   - 평가 → 경험 중심 문구
-
-2. **관리자 시스템 구현**
-   - DB 기반 isAdmin 필드
-   - adminProcedure 미들웨어
-   - 동적 메뉴 표시
-
-3. **리뷰 개선**
-   - 수정/삭제 기능
-   - 자유 텍스트 입력
-   - 작성 후 자동 리다이렉트
-
-### 2025-07-14 - UI/UX 대규모 개선
-
-1. **메인 페이지 리디자인**
-   - Hero 섹션
-   - 퀵링크 카드
-   - 최근 리뷰/이벤트
-
-2. **검색 개선**
-   - 탭 분리 (이벤트/리뷰)
-   - 하이라이팅
-   - 로딩 상태
-
-3. **반응형 개선**
-   - 모바일 네비게이션
-   - 터치 친화적 UI
-
-### 2025-07-13 - 프로젝트 재점검
-
-1. **요구사항 확인**
-   - 캘린더 중심 UI 검증
-   - 관리자 전용 이벤트 등록
-   - 자유로운 리뷰 작성
-
-2. **버그 수정**
-   - 프로필 404 오류
-   - 댓글 렌더링
-   - 이미지 업로드
-
-### 2025-07-12 - 초기 MVP 구현
-
-1. **핵심 기능**
-   - 리뷰 CRUD
-   - 이벤트 캘린더
-   - 소셜 기능
-   - Clerk 인증
+5. **검색 기능**
+   - 통합 검색 (이벤트/리뷰/사용자)
+   - 실시간 검색 결과
 
 ---
 
-## 🔮 향후 계획
+## 🎯 다음 진행 가능한 작업들
 
-### Phase 2 (음악 액티비티 플랫폼 전환)
-
-#### 2025년 1-3월
-
-1. **음악 다이어리 전환**
-   - 사진 중심 UI (최대 10장)
-   - 공연 순간 태그 (#앵콜 #떼창)
-   - 셋리스트 기록
-
-2. **마이 뮤직 프로필**
-   - 공연 히스토리 타임라인
-   - 음악 취향 배지
-   - 공연 통계
-
-3. **피드 개선**
-   - 인스타그램 스타일
-   - 스와이프 탐색
-   - 아티스트/장르 필터
-
-#### 2025년 4-6월
-
-1. **커뮤니티 기능**
-   - 음악 취향 매칭
-   - 공연 동행 찾기
-   - 24시간 스토리
-   - 아티스트 팬 공간
-
-2. **수익화 준비**
-   - 프리미엄 구독 모델
-   - 파트너십 시스템
-
-### 기술 부채
+### 우선순위 높음 ⭐⭐⭐
 
 1. **성능 최적화**
-   - 이미지 최적화
-   - API 캐싱
-   - 무한 스크롤
+   - [ ] React Query 설정 최적화로 API 응답 캐싱 개선
+   - [ ] 번들 사이즈 최적화 (코드 스플리팅, tree shaking)
+   - [ ] Cloudflare Images 리사이징 API 활용한 이미지 최적화
+   - [ ] 무한 스크롤에 가상화(virtualization) 적용
 
-2. **인프라**
-   - 에러 모니터링
-   - 애널리틱스
-   - CDN 설정
+2. **테스트 구축**
+   - [ ] E2E 테스트 - Playwright 설정 및 핵심 시나리오 테스트 구현
+   - [ ] 단위 테스트 - 중요 컴포넌트와 훅 테스트 작성
+   - [ ] 통합 테스트 - API 라우트 테스트 구현
 
-3. **모바일**
-   - React Native 웹뷰 래퍼
-   - 푸시 알림
-   - 네이티브 기능
+3. **모니터링 구축**
+   - [ ] Sentry 재설정 - 에러 모니터링 활성화
+   - [ ] Analytics 설정 - Google Analytics 또는 Vercel Analytics 추가
+   - [ ] Web Vitals 측정 - 성능 모니터링 구현
 
----
+### 중간 우선순위 ⭐⭐
 
-## 📁 프로젝트 구조
+4. **UX 개선**
+   - [ ] 온보딩 플로우 - 신규 사용자 가이드
+   - [ ] 고급 검색 필터 - 날짜, 지역, 가격대별 필터
+   - [ ] 리뷰 템플릿 - 카테고리별 맞춤형 리뷰 양식
+   - [ ] 소셜 공유 - 리뷰/다이어리 SNS 공유 기능
 
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── (auth)/            # 인증 관련 페이지
-│   ├── admin/             # 관리자 페이지
-│   ├── events/            # 이벤트 페이지
-│   ├── profile/           # 프로필
-│   ├── reviews/           # 리뷰
-│   └── search/            # 검색
-├── modules/               # Feature-based 모듈
-│   ├── admin/            # 관리자 기능
-│   ├── auth/             # 인증
-│   ├── events/           # 이벤트/캘린더
-│   ├── home/             # 홈/피드
-│   ├── notifications/    # 알림
-│   ├── profile/          # 프로필
-│   ├── reviews/          # 리뷰
-│   ├── search/           # 검색
-│   └── shared/           # 공통 컴포넌트
-├── server/               # 백엔드
-│   ├── api/             # tRPC 라우터
-│   │   ├── routers/     # 각 도메인 라우터
-│   │   └── root.ts      # 루트 라우터
-│   └── trpc.ts          # tRPC 설정
-└── lib/                  # 공통 라이브러리
-    ├── db/              # 데이터베이스
-    └── trpc/            # tRPC 클라이언트
-```
+5. **접근성 개선**
+   - [ ] 키보드 네비게이션 개선
+   - [ ] 스크린 리더 지원 강화
+   - [ ] 고대비 모드 추가
+   - [ ] 폰트 크기 조절 기능
 
----
+### 낮은 우선순위 ⭐
 
-_마지막 업데이트: 2025-01-17 오후_
+6. **신규 기능**
+   - [ ] 티켓 마켓플레이스 - 안전거래 시스템
+   - [ ] 이벤트 알림 - 관심 아티스트/장소 기반
+   - [ ] 커뮤니티 포럼 - 자유 토론 공간
+   - [ ] 포인트/뱃지 시스템 - 활동 보상
+
+7. **관리자 기능 강화**
+   - [ ] 대시보드 통계 - 상세 분석 차트
+   - [ ] 일괄 작업 - 다중 선택 관리
+   - [ ] 신고 관리 시스템
+   - [ ] 자동화 규칙 설정
+
+## 📝 기술 스택 상세
+
+- **Frontend**: Next.js 15.3.5, React 19, TypeScript
+- **Styling**: Tailwind CSS v4, CSS Modules
+- **State**: TanStack Query v5, Zustand
+- **Backend**: tRPC v11, Drizzle ORM
+- **Database**: Neon (PostgreSQL)
+- **Auth**: Clerk
+- **Media**: Cloudinary (이미지), Cloudflare Stream (동영상)
+- **Deployment**: Vercel
+- **Monitoring**: Sentry (설정 필요)
+
+## 🔧 주요 설정 파일
+
+- `.env.local` - 환경 변수
+- `drizzle.config.ts` - DB 설정
+- `next.config.js` - Next.js 설정
+- `tailwind.config.ts` - 스타일 설정
+
+## 📚 참고 문서
+
+- [Next.js 15 문서](https://nextjs.org/docs)
+- [tRPC v11 문서](https://trpc.io/docs)
+- [Drizzle ORM 문서](https://orm.drizzle.team/)
+- [Clerk 문서](https://clerk.com/docs)

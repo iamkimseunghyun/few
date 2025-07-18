@@ -459,4 +459,36 @@ export const eventsRouter = createTRPCRouter({
 
       return bookmark.length > 0;
     }),
+
+  // Search events
+  search: publicProcedure
+    .input(
+      z.object({
+        query: z.string().min(1),
+        limit: z.number().min(1).max(50).optional().default(10),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const searchPattern = `%${input.query}%`;
+      
+      const results = await ctx.db
+        .select({
+          id: events.id,
+          name: events.name,
+          location: events.location,
+          dates: events.dates,
+          category: events.category,
+        })
+        .from(events)
+        .where(
+          or(
+            like(events.name, searchPattern),
+            like(events.location, searchPattern)
+          )
+        )
+        .orderBy(events.name)
+        .limit(input.limit);
+
+      return results;
+    }),
 });

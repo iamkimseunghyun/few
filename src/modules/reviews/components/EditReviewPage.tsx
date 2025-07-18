@@ -70,6 +70,7 @@ export function EditReviewPage({ reviewId }: EditReviewPageProps) {
             content: review.content,
             tags: review.tags?.join(', ') || '',
             imageUrls: review.imageUrls || [],
+            mediaItems: review.mediaItems || [],
           }}
           onSuccess={() => {
             router.push(`/reviews/${reviewId}`);

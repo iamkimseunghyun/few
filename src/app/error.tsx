@@ -1,8 +1,8 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { AlertTriangle } from 'lucide-react';
 
 export default function Error({
   error,
@@ -12,31 +12,35 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Sentry에 에러 리포트
-    Sentry.captureException(error);
+    // Log the error to an error reporting service
+    console.error('Global error:', error);
   }, [error]);
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center p-4">
-      <div className="mx-auto max-w-md text-center">
-        <h2 className="mb-4 text-2xl font-bold text-gray-900">
-          앗, 문제가 발생했어요!
+    <div className="flex min-h-[calc(100vh-200px)] items-center justify-center px-4">
+      <div className="text-center">
+        <div className="mb-4 flex justify-center">
+          <AlertTriangle className="h-16 w-16 text-destructive" />
+        </div>
+        <h1 className="mb-2 text-3xl font-bold text-foreground">500</h1>
+        <h2 className="mb-4 text-xl font-semibold text-foreground">
+          서버 오류가 발생했습니다
         </h2>
-        <p className="mb-6 text-gray-600">
-          일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
+        <p className="mb-8 text-sm text-muted-foreground">
+          일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.
         </p>
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+        <div className="flex gap-4 justify-center">
           <button
             onClick={reset}
-            className="rounded-lg bg-purple-600 px-6 py-3 text-white hover:bg-purple-700 transition-colors"
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             다시 시도
           </button>
           <Link
             href="/"
-            className="rounded-lg border border-gray-300 px-6 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
           >
-            홈으로 가기
+            홈으로 돌아가기
           </Link>
         </div>
       </div>

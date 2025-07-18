@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { api } from '@/lib/trpc';
 import { ReportDialog } from './ReportDialog';
 import { BlurImage } from '@/modules/shared/ui/components/BlurImage';
+import { ReviewMediaGallery } from './ReviewMediaGallery';
 import { type ReviewWithDetails } from '../types';
 import { OptimizedImage } from '@/modules/shared';
 
@@ -166,7 +167,15 @@ export function ReviewCard({ review }: ReviewCardProps) {
         </p>
       </Link>
 
-      {review.imageUrls && review.imageUrls.length > 0 && (
+      {/* 새로운 mediaItems 렌더링 */}
+      {review.mediaItems && review.mediaItems.length > 0 && (
+        <div className="mb-4">
+          <ReviewMediaGallery media={review.mediaItems} />
+        </div>
+      )}
+      
+      {/* 기존 imageUrls 호환성 유지 */}
+      {!review.mediaItems && review.imageUrls && review.imageUrls.length > 0 && (
         <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {review.imageUrls.slice(0, 3).map((url, index) => (
             <div

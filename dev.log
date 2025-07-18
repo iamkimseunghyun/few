@@ -1,0 +1,153 @@
+
+> festival-review-app@0.1.0 dev
+> next dev -p 3030 --turbopack
+
+   ▲ Next.js 15.3.5 (Turbopack)
+   - Local:        http://localhost:3030
+   - Network:      http://192.168.0.34:3030
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Compiled middleware in 133ms
+ ✓ Ready in 726ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.6s
+ ⨯ Error: Event handlers cannot be passed to Client Component props.
+  <button onClick={function onClick} className=... children=...>
+                  ^^^^^^^^^^^^^^^^^^
+If you need interactivity, consider converting part of this to a Client Component.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '3008422257'
+}
+ ⨯ Error: Event handlers cannot be passed to Client Component props.
+  <button onClick={function onClick} className=... children=...>
+                  ^^^^^^^^^^^^^^^^^^
+If you need interactivity, consider converting part of this to a Client Component.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '3008422257'
+}
+ GET / 200 in 3263ms
+ ✓ Compiled /api/trpc/[trpc] in 411ms
+[tRPC] query users.getCurrentUser - 0ms
+ GET /api/trpc/users.getCurrentUser?input=%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D 200 in 965ms
+getByDateRange input: {
+  startDate: '2025-06-18T07:13:12.137Z',
+  endDate: '2025-09-18T07:13:12.137Z',
+  categories: undefined,
+  locations: undefined
+}
+Query: select "id", "name", "category", "location", "dates", "description", "lineup", "poster_url", "ticket_price_range", "capacity", "organizer", "website", "venue_info", "created_at", "updated_at", (
+                                     SELECT COUNT(*)::int FROM "reviews"
+                                     WHERE "reviews".event_id = "events".id
+                                   ), (
+                                   SELECT COALESCE(AVG("reviews".overall_rating), 0)::float
+                                   FROM "reviews"
+                                   WHERE "reviews".event_id = "events".id
+                                 ) from "events" where ("events"."dates"->>'start' <= $1 and COALESCE("events"."dates"->>'end', "events"."dates"->>'start') >= $2) order by "events"."dates"->>'start' ASC -- params: ["2025-09-18T07:13:12.137Z", "2025-06-18T07:13:12.137Z"]
+Query: select "reviews"."id", "reviews"."user_id", "reviews"."event_id", "reviews"."event_name", "reviews"."title", "reviews"."overall_rating", "reviews"."sound_rating", "reviews"."view_rating", "reviews"."safety_rating", "reviews"."operation_rating", "reviews"."seat_or_area", "reviews"."content", "reviews"."image_urls", "reviews"."media_items", "reviews"."tags", "reviews"."like_count", "reviews"."comment_count", "reviews"."helpful_count", "reviews"."is_best_review", "reviews"."best_review_date", "reviews"."created_at", "reviews"."updated_at", "users"."id", "users"."username", "users"."email", "users"."image_url", "users"."is_admin", "users"."review_count", "users"."total_likes_received", "users"."best_review_count", "users"."reviewer_level", "users"."created_at", "users"."updated_at" from "reviews" left join "users" on "reviews"."user_id" = "users"."id" where "reviews"."is_best_review" = $1 order by "reviews"."best_review_date" desc limit $2 -- params: [true, 4]
+Query: select "id", "name", "category", "location", "dates", "description", "lineup", "poster_url", "ticket_price_range", "capacity", "organizer", "website", "venue_info", "created_at", "updated_at", (
+                                     SELECT COUNT(*)::int FROM "reviews"
+                                     WHERE "reviews".event_id = "events".id
+                                   ) from "events" where "events"."dates"->>'start' >= $1 order by "events"."dates"->>'start' ASC limit $2 -- params: ["2025-07-18T07:13:13.154Z", 5]
+Query: select distinct "location" from "events" where "events"."location" IS NOT NULL AND "events"."location" != '' order by "events"."location"
+Query: select "reviews"."id", "reviews"."user_id", "reviews"."event_id", "reviews"."event_name", "reviews"."title", "reviews"."overall_rating", "reviews"."sound_rating", "reviews"."view_rating", "reviews"."safety_rating", "reviews"."operation_rating", "reviews"."seat_or_area", "reviews"."content", "reviews"."image_urls", "reviews"."media_items", "reviews"."tags", "reviews"."like_count", "reviews"."comment_count", "reviews"."helpful_count", "reviews"."is_best_review", "reviews"."best_review_date", "reviews"."created_at", "reviews"."updated_at", "users"."id", "users"."username", "users"."email", "users"."image_url", "users"."is_admin", "users"."review_count", "users"."total_likes_received", "users"."best_review_count", "users"."reviewer_level", "users"."created_at", "users"."updated_at", "events"."id", "events"."name", "events"."category", "events"."location", "events"."dates", "events"."description", "events"."lineup", "events"."poster_url", "events"."ticket_price_range", "events"."capacity", "events"."organizer", "events"."website", "events"."venue_info", "events"."created_at", "events"."updated_at", (
+            SELECT COUNT(*)::int FROM "review_likes"
+            WHERE "review_likes"."review_id" = "reviews"."id"
+          ), (
+            SELECT COUNT(*)::int FROM "comments"
+            WHERE "comments"."review_id" = "reviews"."id"
+          ), false, false from "reviews" left join "users" on "reviews"."user_id" = "users"."id" left join "events" on "reviews"."event_id" = "events"."id" order by "reviews"."created_at" desc limit $1 -- params: [4]
+getByDateRange result: 6
+[tRPC] query events.getByDateRange - 258ms
+ GET /api/trpc/events.getByDateRange?input=%7B%22json%22%3A%7B%22startDate%22%3A%222025-06-18T07%3A13%3A12.137Z%22%2C%22endDate%22%3A%222025-09-18T07%3A13%3A12.137Z%22%2C%22categories%22%3Anull%2C%22locations%22%3Anull%7D%2C%22meta%22%3A%7B%22values%22%3A%7B%22categories%22%3A%5B%22undefined%22%5D%2C%22locations%22%3A%5B%22undefined%22%5D%7D%7D%7D 200 in 1229ms
+[tRPC] query events.getLocations - 256ms
+ GET /api/trpc/events.getLocations?input=%7B%22json%22%3Anull%2C%22meta%22%3A%7B%22values%22%3A%5B%22undefined%22%5D%7D%7D 200 in 1236ms
+[tRPC] query reviewsEnhanced.getBestReviews - 263ms
+ GET /api/trpc/reviewsEnhanced.getBestReviews?input=%7B%22json%22%3A%7B%22limit%22%3A4%7D%7D 200 in 1239ms
+[tRPC] query reviews.getAll - 263ms
+ GET /api/trpc/reviews.getAll?input=%7B%22json%22%3A%7B%22limit%22%3A3%7D%7D 200 in 1233ms
+[tRPC] query events.getUpcoming - 266ms
+ GET /api/trpc/events.getUpcoming?input=%7B%22json%22%3A%7B%22limit%22%3A5%7D%7D 200 in 1234ms
+ ✓ Compiled in 154ms
+ ○ Compiling instrumentation Node.js ...
+ ⨯ ./src/instrumentation.ts:5:11
+Module not found: Can't resolve '../sentry.server.config'
+[0m [90m 3 |[39m [36mexport[39m [36masync[39m [36mfunction[39m register() {[0m
+[0m [90m 4 |[39m   [36mif[39m (process[33m.[39menv[33m.[39m[33mNEXT_RUNTIME[39m [33m===[39m [32m'nodejs'[39m) {[0m
+[0m[31m[1m>[22m[39m[90m 5 |[39m     [36mawait[39m [36mimport[39m([32m'../sentry.server.config'[39m)[33m;[39m[0m
+[0m [90m   |[39m           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+[0m [90m 6 |[39m   }[0m
+[0m [90m 7 |[39m[0m
+[0m [90m 8 |[39m   [36mif[39m (process[33m.[39menv[33m.[39m[33mNEXT_RUNTIME[39m [33m===[39m [32m'edge'[39m) {[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ✓ Compiled instrumentation Node.js in 646ms
+ ⨯ ./src/instrumentation.ts:9:11
+Module not found: Can't resolve '../sentry.edge.config'
+[0m [90m  7 |[39m[0m
+[0m [90m  8 |[39m   [36mif[39m (process[33m.[39menv[33m.[39m[33mNEXT_RUNTIME[39m [33m===[39m [32m'edge'[39m) {[0m
+[0m[31m[1m>[22m[39m[90m  9 |[39m     [36mawait[39m [36mimport[39m([32m'../sentry.edge.config'[39m)[33m;[39m[0m
+[0m [90m    |[39m           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+[0m [90m 10 |[39m   }[0m
+[0m [90m 11 |[39m }[0m
+[0m [90m 12 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ✓ Compiled instrumentation Edge in 45ms
+ ✓ Compiled middleware in 1ms
+ ⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+   ▲ Next.js 15.3.5 (Turbopack)
+   - Local:        http://localhost:3030
+   - Network:      http://192.168.0.34:3030
+   - Environments: .env.local
+
+ ✓ Starting...
+ ⨯ ./src/instrumentation.ts:5:11
+Module not found: Can't resolve '../sentry.server.config'
+[0m [90m 3 |[39m [36mexport[39m [36masync[39m [36mfunction[39m register() {[0m
+[0m [90m 4 |[39m   [36mif[39m (process[33m.[39menv[33m.[39m[33mNEXT_RUNTIME[39m [33m===[39m [32m'nodejs'[39m) {[0m
+[0m[31m[1m>[22m[39m[90m 5 |[39m     [36mawait[39m [36mimport[39m([32m'../sentry.server.config'[39m)[33m;[39m[0m
+[0m [90m   |[39m           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+[0m [90m 6 |[39m   }[0m
+[0m [90m 7 |[39m[0m
+[0m [90m 8 |[39m   [36mif[39m (process[33m.[39menv[33m.[39m[33mNEXT_RUNTIME[39m [33m===[39m [32m'edge'[39m) {[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ✓ Compiled instrumentation Node.js in 328ms
+ ⨯ ./src/instrumentation.ts:9:11
+Module not found: Can't resolve '../sentry.edge.config'
+[0m [90m  7 |[39m[0m
+[0m [90m  8 |[39m   [36mif[39m (process[33m.[39menv[33m.[39m[33mNEXT_RUNTIME[39m [33m===[39m [32m'edge'[39m) {[0m
+[0m[31m[1m>[22m[39m[90m  9 |[39m     [36mawait[39m [36mimport[39m([32m'../sentry.edge.config'[39m)[33m;[39m[0m
+[0m [90m    |[39m           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+[0m [90m 10 |[39m   }[0m
+[0m [90m 11 |[39m }[0m
+[0m [90m 12 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ ✓ Compiled instrumentation Edge in 41ms
+ ✓ Compiled middleware in 135ms
+Error: Cannot find module '../sentry.server.config'
+    at <unknown> (.next/server/chunks/[root-of-the-server]__e7f8aa70._.js:273:23)
+    at Module.register (.next/server/chunks/[root-of-the-server]__e7f8aa70._.js:276:11) {
+  code: 'MODULE_NOT_FOUND'
+}
+[?25h

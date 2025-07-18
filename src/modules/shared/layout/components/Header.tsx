@@ -28,6 +28,24 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden sm:flex items-center gap-4">
+          <Link
+            href="/events"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            이벤트
+          </Link>
+          <Link
+            href="/diary"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            다이어리
+          </Link>
+          <Link
+            href="/reviews"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            리뷰
+          </Link>
           {isSignedIn && (
             <>
               <NotificationBell />
@@ -68,6 +86,8 @@ export function Header() {
         {/* Mobile Navigation - Simplified for bottom nav */}
         <div className="flex items-center gap-2 sm:hidden">
           <SearchBar className="flex-1" />
+          {isSignedIn && <NotificationBell />}
+          <ThemeToggle />
         </div>
       </div>
     </header>

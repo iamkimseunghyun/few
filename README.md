@@ -10,36 +10,40 @@
 - **Styling**: Tailwind CSS v4
 - **Authentication**: Clerk
 - **API**: tRPC
-- **Database**: PostgreSQL + Drizzle ORM
+- **Database**: PostgreSQL (Neon) + Drizzle ORM
 - **State Management**: TanStack Query
+- **Package Manager**: Bun (빠른 설치 및 실행)
 
 ## 빠른 시작 (Quick Start)
 
-### 옵션 1: Docker로 로컬 개발 환경 설정
+### 사전 요구사항
 
 ```bash
-# 1. Docker로 PostgreSQL 실행
-docker-compose up -d
-
-# 2. 환경 변수 설정
-cp .env.local.example .env.local
-
-# 3. 의존성 설치
-npm install
-
-# 4. 데이터베이스 초기화
-npm run db:push
-
-# 5. 개발 서버 실행
-npm run dev
+# Bun 설치 (아직 없다면)
+curl -fsSL https://bun.sh/install | bash
 ```
 
-### 옵션 2: Supabase로 클라우드 환경 설정
+### 환경 설정
 
-1. [Supabase](https://supabase.com)에서 무료 프로젝트 생성
-2. Project Settings → Database에서 Connection String 복사
-3. `.env.local` 파일에 DATABASE_URL 설정
-4. 위의 3-5번 단계 실행
+```bash
+# 1. 환경 변수 설정
+cp .env.local.example .env.local
+
+# 2. 의존성 설치 (빠른 속도!)
+bun install
+
+# 3. 데이터베이스 초기화
+bun run db:push
+
+# 4. 개발 서버 실행
+bun run dev
+```
+
+### 데이터베이스 옵션
+
+1. **Neon** (추천): https://neon.tech 에서 무료 PostgreSQL 인스턴스 생성
+2. **Supabase**: https://supabase.com 에서 무료 프로젝트 생성
+3. **Docker**: 로컬에서 PostgreSQL 실행
 
 ## 상세 설정 가이드
 
@@ -66,33 +70,26 @@ cp .env.example .env.local
 ### 2. 의존성 설치
 
 ```bash
-npm install
+bun install
 ```
 
 ### 3. 데이터베이스 설정
 
-package.json에 다음 스크립트를 추가하세요:
-```json
-"scripts": {
-  "db:generate": "drizzle-kit generate",
-  "db:push": "drizzle-kit push",
-  "db:studio": "drizzle-kit studio"
-}
-```
-
-그 다음 실행:
 ```bash
-# 데이터베이스 마이그레이션 생성
-npm run db:generate
+# 데이터베이스 스키마 푸시
+bun run db:push
 
-# 마이그레이션 적용
-npm run db:push
+# 데이터베이스 관리 UI 실행 (선택사항)
+bun run db:studio
+
+# 시드 데이터 생성 (선택사항)
+bun run db:seed
 ```
 
 ### 4. 개발 서버 실행
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 http://localhost:3030에서 앱을 확인할 수 있습니다.
@@ -124,10 +121,22 @@ src/
 
 ## 스크립트
 
-- `npm run dev` - 개발 서버 실행 (포트 3030)
-- `npm run build` - 프로덕션 빌드
-- `npm run start` - 프로덕션 서버 실행
-- `npm run lint` - 린트 검사
+- `bun run dev` - 개발 서버 실행 (포트 3030)
+- `bun run build` - 프로덕션 빌드
+- `bun run start` - 프로덕션 서버 실행
+- `bun run lint` - 린트 검사
+- `bun run db:push` - 데이터베이스 스키마 푸시
+- `bun run db:studio` - Drizzle Studio 실행
+- `bun run db:migrate` - 마이그레이션 실행
+- `bun run db:seed` - 시드 데이터 생성
+
+## Bun vs npm 성능 비교
+
+- **의존성 설치**: 3-10배 빠름 ⚡
+- **개발 서버 시작**: 더 빠른 콜드 스타트
+- **캐시 효율성**: 더 작은 디스크 사용량
+- **내장 기능**: TypeScript, .env 파일 자동 지원
+- **빌드 시간**: 동일 (Next.js는 Node.js 기반)
 
 ## Clerk 웹훅 설정
 

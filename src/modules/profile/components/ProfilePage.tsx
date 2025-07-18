@@ -4,15 +4,15 @@ import { useState } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { api } from '@/lib/trpc';
 import { ReviewCard } from '@/modules/reviews';
 import type { ReviewWithDetails } from '@/modules/reviews/types';
-import Image from 'next/image';
 
 export function ProfilePage() {
   const { userId, isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
-  const [activeTab, setActiveTab] = useState<'reviews' | 'bookmarks' | 'events'>(
+  const [activeTab, setActiveTab] = useState<'reviews' | 'bookmarks' | 'events' | 'diaries'>(
     'reviews'
   );
 
@@ -49,6 +49,18 @@ export function ProfilePage() {
     }
   );
 
+  const {
+    data: savedDiariesData,
+    isLoading: diariesLoading,
+    error: diariesError,
+  } = api.musicDiary.getSaved.useQuery(
+    {},
+    {
+      enabled: !!userId,
+      retry: false,
+    }
+  );
+
   // Fetch reviewer stats
   const { data: reviewerStats } = api.reviewsEnhanced.getReviewerStats.useQuery(
     { userId: userId! },
@@ -72,6 +84,7 @@ export function ProfilePage() {
 
   const bookmarkedReviews = bookmarkedData?.items || [];
   const bookmarkedEvents = bookmarkedEventsData?.items || [];
+  const savedDiaries = savedDiariesData?.items || [];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
@@ -166,6 +179,14 @@ export function ProfilePage() {
                         {bookmarkedReviews.length}개
                       </dd>
                     </div>
+                    <div>
+                      <dt className="text-sm font-medium text-gray-600">
+                        저장한 다이어리
+                      </dt>
+                      <dd className="text-sm text-gray-900">
+                        {savedDiaries.length}개
+                      </dd>
+                    </div>
                   </dl>
                 </div>
               </div>
@@ -209,6 +230,16 @@ export function ProfilePage() {
                 }`}
               >
                 관심 이벤트 ({bookmarkedEvents.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('diaries')}
+                className={`border-b-2 pb-4 text-sm font-medium transition-colors ${
+                  activeTab === 'diaries'
+                    ? 'border-gray-900 text-gray-900'
+                    : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900'
+                }`}
+              >
+                저장한 다이어리 ({savedDiaries.length})
               </button>
             </nav>
           </div>
@@ -372,6 +403,63 @@ export function ProfilePage() {
                       </p>
                       <p className="text-sm text-gray-600">
                         참가하고 싶은 이벤트를 북마크해보세요!
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          ) : activeTab === 'diaries' ? (
+            diariesLoading ? (
+              <div className="flex min-h-[40vh] items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
+              </div>
+            ) : diariesError ? (
+              <div className="flex min-h-[40vh] items-center justify-center">
+                <div className="text-center">
+                  <p className="mb-2 text-lg text-red-600">
+                    다이어리를 불러오는 중 오류가 발생했습니다
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    잠시 후 다시 시도해주세요
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1 sm:gap-2">
+                {savedDiaries.length > 0 ? (
+                  savedDiaries.map(({ diary }) => (
+                    <Link
+                      key={diary.id}
+                      href={`/diary/${diary.id}`}
+                      className="relative aspect-square overflow-hidden bg-gray-100 rounded-sm"
+                    >
+                      {diary.media[0] && (
+                        <Image
+                          src={diary.media[0].url}
+                          alt="Diary"
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                        />
+                      )}
+                      {diary.media.length > 1 && (
+                        <div className="absolute top-2 right-2">
+                          <svg className="w-5 h-5 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
+                          </svg>
+                        </div>
+                      )}
+                    </Link>
+                  ))
+                ) : (
+                  <div className="col-span-3 flex min-h-[40vh] items-center justify-center">
+                    <div className="text-center">
+                      <p className="mb-2 text-lg text-gray-900">
+                        아직 저장한 다이어리가 없습니다
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        마음에 드는 다이어리를 저장해보세요!
                       </p>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { notifications, users, reviews } from "@/lib/db/schema";
+import { notifications, users, reviews, musicDiaries } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import type { db } from "@/lib/db";
 
@@ -7,11 +7,11 @@ type DrizzleDB = typeof db;
 interface CreateNotificationParams {
   db: DrizzleDB;
   userId: string;
-  type: "like" | "comment" | "reply";
+  type: "like" | "comment" | "reply" | "follow" | "diary_like" | "diary_comment";
   title: string;
   message: string;
   relatedId?: string;
-  relatedType?: "review" | "comment" | "user";
+  relatedType?: "review" | "comment" | "user" | "diary";
 }
 
 export async function createNotification({
@@ -118,6 +118,86 @@ export function notificationHelpers({ db }: NotificationHelpers) {
         message: `${repliedByUser?.username || "누군가"}님: ${replyContent.substring(0, 50)}${replyContent.length > 50 ? "..." : ""}`,
         relatedId: reviewId,
         relatedType: "review",
+      });
+    },
+
+    async onDiaryLiked(diaryId: string, likedByUserId: string) {
+      // Get diary details
+      const [diary] = await db
+        .select({
+          diary: musicDiaries,
+          user: users,
+        })
+        .from(musicDiaries)
+        .leftJoin(users, eq(musicDiaries.userId, users.id))
+        .where(eq(musicDiaries.id, diaryId))
+        .limit(1);
+
+      if (!diary || diary.diary.userId === likedByUserId) return;
+
+      const [likedByUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, likedByUserId))
+        .limit(1);
+
+      await createNotification({
+        db,
+        userId: diary.diary.userId,
+        type: "diary_like",
+        title: "다이어리에 좋아요를 받았습니다",
+        message: `${likedByUser?.username || "누군가"}님이 회원님의 다이어리에 좋아요를 눌렀습니다.`,
+        relatedId: diaryId,
+        relatedType: "diary",
+      });
+    },
+
+    async onDiaryCommented(diaryId: string, commentedByUserId: string, commentContent: string) {
+      // Get diary details
+      const [diary] = await db
+        .select({
+          diary: musicDiaries,
+          user: users,
+        })
+        .from(musicDiaries)
+        .leftJoin(users, eq(musicDiaries.userId, users.id))
+        .where(eq(musicDiaries.id, diaryId))
+        .limit(1);
+
+      if (!diary || diary.diary.userId === commentedByUserId) return;
+
+      const [commentedByUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, commentedByUserId))
+        .limit(1);
+
+      await createNotification({
+        db,
+        userId: diary.diary.userId,
+        type: "diary_comment",
+        title: "다이어리에 댓글이 달렸습니다",
+        message: `${commentedByUser?.username || "누군가"}님: ${commentContent.substring(0, 50)}${commentContent.length > 50 ? "..." : ""}`,
+        relatedId: diaryId,
+        relatedType: "diary",
+      });
+    },
+
+    async onUserFollowed(followedUserId: string, followedByUserId: string) {
+      const [followedByUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, followedByUserId))
+        .limit(1);
+
+      await createNotification({
+        db,
+        userId: followedUserId,
+        type: "follow",
+        title: "새로운 팔로워가 생겼습니다",
+        message: `${followedByUser?.username || "누군가"}님이 회원님을 팔로우했습니다.`,
+        relatedId: followedByUserId,
+        relatedType: "user",
       });
     },
   };

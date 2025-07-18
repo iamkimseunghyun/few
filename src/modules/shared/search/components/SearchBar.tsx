@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/trpc';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useDebounce } from '@/modules/shared/hooks/useDebounce';
 
 interface SearchBarProps {
@@ -57,7 +58,7 @@ export function SearchBar({ className }: SearchBarProps) {
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder="이벤트, 리뷰, 아티스트 검색..."
+          placeholder="이벤트, 리뷰, 사용자, 다이어리 검색..."
           className="w-full rounded-lg border border-border bg-background px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
         <button
@@ -155,9 +156,87 @@ export function SearchBar({ className }: SearchBarProps) {
                 </div>
               )}
 
+              {/* Users */}
+              {searchResults.users && searchResults.users.length > 0 && (
+                <div>
+                  <h3 className="border-b border-border px-4 py-2 text-xs font-semibold text-muted-foreground">
+                    사용자
+                  </h3>
+                  {searchResults.users.map((user) => (
+                    <Link
+                      key={user.id}
+                      href={`/profile/${user.id}`}
+                      onClick={() => {
+                        setIsOpen(false);
+                        setQuery('');
+                      }}
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-muted"
+                    >
+                      {user.imageUrl ? (
+                        <Image
+                          src={user.imageUrl}
+                          alt={user.username}
+                          width={32}
+                          height={32}
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-muted" />
+                      )}
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {user.username}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {/* Diaries */}
+              {searchResults.diaries && searchResults.diaries.length > 0 && (
+                <div>
+                  <h3 className="border-b border-border px-4 py-2 text-xs font-semibold text-muted-foreground">
+                    다이어리
+                  </h3>
+                  {searchResults.diaries.map((diary) => (
+                    <Link
+                      key={diary.id}
+                      href={`/diary/${diary.id}`}
+                      onClick={() => {
+                        setIsOpen(false);
+                        setQuery('');
+                      }}
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-muted"
+                    >
+                      {diary.media?.[0] && (
+                        <Image
+                          src={diary.media[0].thumbnailUrl || diary.media[0].url}
+                          alt=""
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 rounded object-cover"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground line-clamp-1">
+                          {diary.caption || '캡션 없음'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {diary.user?.username} •{' '}
+                          {diary.artists?.join(', ') || '아티스트 없음'}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+
               {/* No results */}
               {searchResults.events.length === 0 &&
-                searchResults.reviews.length === 0 && (
+                searchResults.reviews.length === 0 &&
+                (!searchResults.users || searchResults.users.length === 0) &&
+                (!searchResults.diaries || searchResults.diaries.length === 0) && (
                   <div className="p-4 text-center text-sm text-muted-foreground">
                     검색 결과가 없습니다.
                   </div>

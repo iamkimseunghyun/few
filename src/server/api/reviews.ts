@@ -29,7 +29,13 @@ const createReviewSchema = z.object({
   operationRating: ratingSchema.optional(),
   seatOrArea: z.string().max(100).optional(),
   content: z.string().min(10).max(5000),
-  imageUrls: z.array(z.string().url()).max(5).optional(),
+  imageUrls: z.array(z.string().url()).max(10).optional(), // Deprecated
+  mediaItems: z.array(z.object({
+    url: z.string().url(),
+    type: z.enum(['image', 'video']),
+    thumbnailUrl: z.string().url().optional(),
+    duration: z.number().optional(),
+  })).max(10).optional(),
   tags: z.array(z.string().max(20)).max(10).optional(),
 });
 
@@ -88,6 +94,7 @@ export const reviewsRouter = createTRPCRouter({
           seatOrArea: input.seatOrArea,
           content: input.content,
           imageUrls: input.imageUrls,
+          mediaItems: input.mediaItems,
           tags: input.tags,
         })
         .returning();
@@ -361,6 +368,54 @@ export const reviewsRouter = createTRPCRouter({
         code: 'NOT_FOUND',
         message: '리뷰를 찾을 수 없거나 삭제 권한이 없습니다.',
       });
+    }
+
+    // 이미지 및 비디오 삭제 로직 추가
+    const review = existingReview[0];
+    
+    // 새로운 mediaItems 처리
+    if (review.mediaItems && review.mediaItems.length > 0) {
+      const { deleteFromCloudflare, extractImageId } = await import('@/lib/cloudflare-images');
+      const { deleteFromCloudflareStream, extractVideoId } = await import('@/lib/cloudflare-stream');
+      
+      const deletePromises = review.mediaItems.map(async (item) => {
+        try {
+          if (item.type === 'image') {
+            const imageId = extractImageId(item.url);
+            if (imageId) {
+              await deleteFromCloudflare(imageId);
+            }
+          } else if (item.type === 'video') {
+            const videoId = extractVideoId(item.url);
+            if (videoId) {
+              await deleteFromCloudflareStream(videoId);
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to delete ${item.type} ${item.url}:`, error);
+          // 미디어 삭제 실패해도 리뷰는 삭제 진행
+        }
+      });
+      
+      await Promise.allSettled(deletePromises);
+    }
+    // 기존 imageUrls 호환성 유지
+    else if (review.imageUrls && review.imageUrls.length > 0) {
+      const { deleteFromCloudflare, extractImageId } = await import('@/lib/cloudflare-images');
+      
+      const deletePromises = review.imageUrls.map(async (url) => {
+        try {
+          const imageId = extractImageId(url);
+          if (imageId) {
+            await deleteFromCloudflare(imageId);
+          }
+        } catch (error) {
+          console.error(`Failed to delete image ${url}:`, error);
+          // 이미지 삭제 실패해도 리뷰는 삭제 진행
+        }
+      });
+      
+      await Promise.allSettled(deletePromises);
     }
 
     await ctx.db.delete(reviews).where(eq(reviews.id, input.id));

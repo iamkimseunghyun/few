@@ -18,14 +18,16 @@ export interface ReviewWithDetails {
   viewRating: number | null;
   safetyRating: number | null;
   operationRating: number | null;
-  stageViewRating: number | null;
-  soundQualityRating: number | null;
-  crowdAtmosphereRating: number | null;
   seatOrArea: string | null;
   tags: string[] | null;
   imageUrls: string[] | null;
+  mediaItems?: Array<{
+    url: string;
+    type: 'image' | 'video';
+    thumbnailUrl?: string;
+    duration?: number;
+  }>;
   helpfulCount: number;
-  bestReviewCount: number;
   isBestReview: boolean;
   bestReviewDate: Date | null;
   createdAt: Date;

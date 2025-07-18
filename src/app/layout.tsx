@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import { ClerkProvider } from '@clerk/nextjs';
-import { TRPCReactProvider } from '@/lib/trpc';
-import { headers } from 'next/headers';
 import { Header } from '@/modules/shared/layout/components/Header';
 import { ErrorBoundary } from '@/modules/shared';
-import { ThemeProvider } from '@/modules/shared/theme/context/ThemeContext';
 import { ThemeScript } from '@/modules/shared/theme/scripts/theme-script';
 import { MobileNav } from '@/modules/shared/navigation/components/MobileNav';
+import { Toaster } from 'sonner';
+import { Providers } from './providers';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -45,48 +43,47 @@ export const viewport = {
   viewportFit: 'cover',
 };
 
-export const themeColor = [
-  { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-  { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
-];
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
+  modal,
 }: Readonly<{
   children: React.ReactNode;
+  modal: React.ReactNode;
 }>) {
-  const requestHeaders = await headers();
-
   return (
-    <ClerkProvider>
-      <html lang="ko" className={inter.variable} suppressHydrationWarning>
-        <head>
-          <ThemeScript />
-        </head>
-        <body
-          className="min-h-screen bg-background font-sans antialiased"
-          suppressHydrationWarning
-        >
-          <ThemeProvider>
-            <TRPCReactProvider headers={requestHeaders}>
-              <ErrorBoundary>
-                <div className="flex min-h-screen flex-col">
-                  <Header />
-                  <main className="flex-1 pb-16 lg:pb-0">{children}</main>
-                  <footer className="hidden border-t border-border bg-muted lg:block">
-                    <div className="mx-auto max-w-6xl px-6 py-12">
-                      <p className="text-center text-sm text-muted-foreground">
-                        © 2024 few. 우리의 취향과 꿀팁이 모이는 공간.
-                      </p>
-                    </div>
-                  </footer>
-                  <MobileNav />
+    <html lang="ko" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
+      <body
+        className="min-h-screen bg-background font-sans antialiased"
+        suppressHydrationWarning
+      >
+        <Providers>
+          <ErrorBoundary>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1 pb-16 lg:pb-0">{children}</main>
+              <footer className="hidden border-t border-border bg-muted lg:block">
+                <div className="mx-auto max-w-6xl px-6 py-12">
+                  <p className="text-center text-sm text-muted-foreground">
+                    © 2024 few. 우리의 취향과 꿀팁이 모이는 공간.
+                  </p>
                 </div>
-              </ErrorBoundary>
-            </TRPCReactProvider>
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+              </footer>
+              <MobileNav />
+            </div>
+            {modal}
+            <Toaster 
+              position="top-center"
+              expand={false}
+              richColors
+              closeButton
+              theme="system"
+            />
+          </ErrorBoundary>
+        </Providers>
+      </body>
+    </html>
   );
 }

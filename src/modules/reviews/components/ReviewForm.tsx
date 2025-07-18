@@ -6,9 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { api } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
-import { ImageUpload } from '@/modules/shared/upload/components/ImageUpload';
+import { MediaUpload } from './MediaUpload';
 import { useDebounce } from '@/modules/shared/hooks/useDebounce';
 import { useReviewDraft } from '../hooks/useReviewDraft';
+import { toast } from '@/modules/shared/hooks/useToast';
 
 const reviewSchema = z.object({
   title: z
@@ -28,7 +29,13 @@ const reviewSchema = z.object({
     .min(10, '최소 10자 이상 입력해주세요')
     .max(5000, '최대 5000자까지 입력 가능합니다'),
   tags: z.string().optional(),
-  imageUrls: z.array(z.string()).optional(),
+  imageUrls: z.array(z.string()).optional(), // Deprecated
+  mediaItems: z.array(z.object({
+    url: z.string(),
+    type: z.enum(['image', 'video']),
+    thumbnailUrl: z.string().optional(),
+    duration: z.number().optional(),
+  })).optional(),
 });
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
@@ -82,22 +89,35 @@ export function ReviewForm({
       eventName: '',
       overallRating: 0,
       imageUrls: [],
+      mediaItems: [],
     },
   });
 
   const createReview = api.reviews.create.useMutation({
     onSuccess: () => {
       removeDraft(); // 리뷰 작성 성공 시 임시저장 삭제
+      toast.success('리뷰가 성공적으로 작성되었습니다!');
       onSuccess?.();
       router.refresh();
+    },
+    onError: (error) => {
+      toast.error('리뷰 작성에 실패했습니다', {
+        description: error.message || '잠시 후 다시 시도해주세요.'
+      });
     },
   });
 
   const updateReview = api.reviews.update.useMutation({
     onSuccess: () => {
       removeDraft(); // 리뷰 수정 성공 시 임시저장 삭제
+      toast.success('리뷰가 성공적으로 수정되었습니다!');
       onSuccess?.();
       router.refresh();
+    },
+    onError: (error) => {
+      toast.error('리뷰 수정에 실패했습니다', {
+        description: error.message || '잠시 후 다시 시도해주세요.'
+      });
     },
   });
 
@@ -403,12 +423,19 @@ export function ReviewForm({
 
         <div>
           <label className="mb-2 block text-sm font-medium text-foreground">
-            사진 (최대 3개)
+            사진/동영상 (최대 10개)
           </label>
-          <ImageUpload
-            value={watch('imageUrls') || []}
-            onChange={(urls) => setValue('imageUrls', urls)}
-            maxImages={3}
+          <MediaUpload
+            value={watch('mediaItems') || []}
+            onChange={(items) => {
+              setValue('mediaItems', items);
+              // 호환성을 위해 imageUrls도 업데이트 (이미지만)
+              const imageUrls = items
+                .filter(item => item.type === 'image')
+                .map(item => item.url);
+              setValue('imageUrls', imageUrls);
+            }}
+            maxItems={10}
           />
         </div>
 

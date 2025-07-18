@@ -20,7 +20,6 @@ function getUrl() {
 
 export function TRPCReactProvider(props: {
   children: React.ReactNode;
-  headers: Headers;
 }) {
   const [queryClient] = useState(
     () =>
@@ -65,9 +64,9 @@ export function TRPCReactProvider(props: {
           url: getUrl(),
           transformer: superjson, // transformer는 각 링크에 설정
           headers() {
-            const heads = new Map(props.headers);
-            heads.set('x-trpc-source', 'react');
-            return Object.fromEntries(heads);
+            return {
+              'x-trpc-source': 'react',
+            };
           },
         }),
       ],
