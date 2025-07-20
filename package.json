@@ -19,6 +19,8 @@
     "db:sync-emails": "tsx scripts/sync-user-emails.ts",
     "db:add-event-fields": "tsx scripts/add-event-fields.ts",
     "set-admin": "tsx scripts/set-admin-user.ts",
+    "sync-user": "tsx scripts/sync-user-data.ts",
+    "check-user": "tsx scripts/check-user-data.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
