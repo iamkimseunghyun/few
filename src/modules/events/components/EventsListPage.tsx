@@ -14,6 +14,11 @@ import { useSwipeElement } from '@/modules/shared/hooks/useSwipe';
 import { CloudflareImage } from '@/components/CloudflareImage';
 import { isCloudflareImageUrl } from '@/lib/image-utils';
 import { extractImageId } from '@/lib/cloudflare-images';
+import { trackEvent } from '@/lib/analytics';
+import { PullToRefresh } from '@/components/PullToRefresh';
+import { FloatingActionButton } from '@/components/FloatingActionButton';
+import { PlusIcon } from '@heroicons/react/24/outline';
+import { TouchFeedback } from '@/components/TouchFeedback';
 
 // 카테고리 한글 변환 매핑
 const categoryLabels: Record<EventCategory, string> = {
@@ -39,6 +44,20 @@ export function EventsListPage() {
   const { data, isLoading, error, refetch } = api.events.getAll.useQuery();
   const filterRef = useRef<HTMLDivElement>(null);
 
+  // 카테고리 변경 추적
+  const handleCategoryChange = (newCategory: string) => {
+    setCategory(newCategory);
+    trackEvent('filter_category', { category: newCategory });
+  };
+
+  // 이벤트 클릭 추적
+  const handleEventClick = (event: EventWithStats) => {
+    trackEvent('click_event', {
+      eventId: event.id,
+      eventName: event.name,
+    });
+  };
+
   // API 응답에서 items 배열 추출
   const eventsList = data?.items || [];
 
@@ -62,12 +81,12 @@ export function EventsListPage() {
   useSwipeElement(filterRef, {
     onSwipeLeft: () => {
       if (currentIndex < categories.length - 1) {
-        setCategory(categories[currentIndex + 1]);
+        handleCategoryChange(categories[currentIndex + 1]);
       }
     },
     onSwipeRight: () => {
       if (currentIndex > 0) {
-        setCategory(categories[currentIndex - 1]);
+        handleCategoryChange(categories[currentIndex - 1]);
       }
     },
   });
@@ -76,7 +95,7 @@ export function EventsListPage() {
     return (
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
         <ErrorMessage
-          title="이벤트를 불러올 수 없습니다"
+          title="공연을 불러올 수 없습니다"
           message="네트워크 연결을 확인하고 다시 시도해주세요."
           onRetry={() => refetch()}
           fullScreen
@@ -86,14 +105,15 @@ export function EventsListPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+    <PullToRefresh onRefresh={async () => { await refetch(); }}>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
       <div className="mb-6 sm:mb-8 flex items-center justify-between">
         <div>
           <h1 className="mb-2 text-2xl font-bold text-gray-900 sm:text-3xl">
-            이벤트
+            공연
           </h1>
           <p className="text-sm text-gray-600 sm:text-base">
-            다양한 공연과 페스티벌을 확인하고 리뷰를 남겨보세요.
+            다양한 공연과 페스티벌을 확인하고 기록을 남겨보세요.
           </p>
         </div>
         {isSignedIn && (
@@ -114,7 +134,7 @@ export function EventsListPage() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            리뷰 작성
+            기록 작성
           </Link>
         )}
       </div>
@@ -124,66 +144,84 @@ export function EventsListPage() {
         ref={filterRef}
         className="mb-6 flex gap-2 overflow-x-auto scrollbar-hide sm:mb-8"
       >
-        <button
-          onClick={() => setCategory('all')}
-          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
-            category === 'all'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          전체
-        </button>
-        <button
-          onClick={() => setCategory('festival')}
-          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
-            category === 'festival'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          페스티벌
-        </button>
-        <button
-          onClick={() => setCategory('concert')}
-          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
-            category === 'concert'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          콘서트
-        </button>
-        <button
-          onClick={() => setCategory('overseas_tour')}
-          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
-            category === 'overseas_tour'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          내한공연
-        </button>
-        <button
-          onClick={() => setCategory('performance')}
-          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
-            category === 'performance'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          공연
-        </button>
-        <button
-          onClick={() => setCategory('exhibition')}
-          className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
-            category === 'exhibition'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          전시
-        </button>
+        <TouchFeedback type="opacity">
+          <button
+            onClick={() => handleCategoryChange('all')}
+            data-testid="filter-all"
+            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
+              category === 'all'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            전체
+          </button>
+        </TouchFeedback>
+        <TouchFeedback type="opacity">
+          <button
+            onClick={() => handleCategoryChange('festival')}
+            data-testid="filter-festival"
+            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
+              category === 'festival'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            페스티벌
+          </button>
+        </TouchFeedback>
+        <TouchFeedback type="opacity">
+          <button
+            onClick={() => handleCategoryChange('concert')}
+            data-testid="filter-concert"
+            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
+              category === 'concert'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            콘서트
+          </button>
+        </TouchFeedback>
+        <TouchFeedback type="opacity">
+          <button
+            onClick={() => handleCategoryChange('overseas_tour')}
+            data-testid="filter-overseas_tour"
+            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
+              category === 'overseas_tour'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            내한공연
+          </button>
+        </TouchFeedback>
+        <TouchFeedback type="opacity">
+          <button
+            onClick={() => handleCategoryChange('performance')}
+            data-testid="filter-performance"
+            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
+              category === 'performance'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            공연
+          </button>
+        </TouchFeedback>
+        <TouchFeedback type="opacity">
+          <button
+            onClick={() => handleCategoryChange('exhibition')}
+            data-testid="filter-exhibition"
+            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-4 sm:py-2 sm:text-sm ${
+              category === 'exhibition'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            전시
+          </button>
+        </TouchFeedback>
       </div>
 
       {/* 이벤트 그리드 */}
@@ -201,6 +239,7 @@ export function EventsListPage() {
           {filteredEvents.map((event: EventWithStats) => (
             <article
               key={event.id}
+              data-testid="event-card"
               className="bg-white border-b sm:border sm:rounded-lg sm:overflow-hidden sm:hover:shadow-lg sm:transition-all"
             >
               {/* 모바일: 인스타그램 스타일 헤더 */}
@@ -220,6 +259,7 @@ export function EventsListPage() {
                 </div>
                 <Link
                   href={`/events/${event.id}`}
+                  onClick={() => handleEventClick(event)}
                   className="text-sm text-gray-600 hover:text-gray-900"
                 >
                   상세보기
@@ -229,6 +269,7 @@ export function EventsListPage() {
               {/* 이미지 영역 */}
               <Link
                 href={`/events/${event.id}`}
+                onClick={() => handleEventClick(event)}
                 className="block relative aspect-square sm:aspect-[16/9] overflow-hidden bg-gray-100"
               >
                 {event.posterUrl ? (
@@ -295,12 +336,15 @@ export function EventsListPage() {
                   )}
                 </div>
                 {isSignedIn && (
-                  <Link
-                    href={`/events/${event.id}`}
-                    className="block w-full text-center py-2 text-sm font-medium text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
-                  >
-                    리뷰 작성하기
-                  </Link>
+                  <TouchFeedback type="ripple" rippleColor="rgba(0, 0, 0, 0.05)">
+                    <Link
+                      href={`/events/${event.id}`}
+                      onClick={() => handleEventClick(event)}
+                      className="block w-full text-center py-2 text-sm font-medium text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      리뷰 작성하기
+                    </Link>
+                  </TouchFeedback>
                 )}
               </div>
 
@@ -340,7 +384,7 @@ export function EventsListPage() {
                   </p>
                 )}
                 <div className="mt-3 flex items-center gap-4 text-sm text-gray-600">
-                  <span>{event.reviewCount || 0} 리뷰</span>
+                  <span>{event.reviewCount || 0} 기록</span>
                   {event.avgRating > 0 && (
                     <span>★ {event.avgRating.toFixed(1)}</span>
                   )}
@@ -368,34 +412,24 @@ export function EventsListPage() {
           }
           title={
             category === 'all'
-              ? '아직 등록된 이벤트가 없습니다'
-              : `${categoryLabels[category as EventCategory] || '이벤트'}가 없습니다`
+              ? '아직 등록된 공연이 없습니다'
+              : `${categoryLabels[category as EventCategory] || '공연'}이 없습니다`
           }
-          description="곧 새로운 이벤트가 등록될 예정입니다"
+          description="곧 새로운 공연이 등록될 예정입니다"
         />
       )}
 
       {/* 모바일 플로팅 액션 버튼 */}
       {isSignedIn && (
-        <Link
+        <FloatingActionButton
           href="/reviews/new"
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 text-white shadow-lg hover:bg-gray-800 sm:hidden"
+          ariaLabel="기록 작성하기"
+          className="bg-gray-900 hover:bg-gray-800 sm:hidden"
         >
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-        </Link>
+          <PlusIcon className="h-6 w-6" />
+        </FloatingActionButton>
       )}
     </div>
+    </PullToRefresh>
   );
 }

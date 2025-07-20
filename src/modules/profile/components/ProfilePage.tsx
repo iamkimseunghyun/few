@@ -1,484 +1,304 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth, useUser } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
 import Image from 'next/image';
 import { api } from '@/lib/trpc';
 import { ReviewCard } from '@/modules/reviews';
+import { DiaryCard } from '@/modules/music-diary/components/DiaryCard';
 import type { ReviewWithDetails } from '@/modules/reviews/types';
+import { 
+  CalendarDaysIcon,
+  Cog6ToothIcon,
+  ChartBarIcon,
+  UserPlusIcon,
+  UserMinusIcon
+} from '@heroicons/react/24/outline';
 
-export function ProfilePage() {
-  const { userId, isSignedIn, isLoaded } = useAuth();
-  const { user } = useUser();
-  const [activeTab, setActiveTab] = useState<'reviews' | 'bookmarks' | 'events' | 'diaries'>(
-    'reviews'
+interface ProfilePageProps {
+  profileUserId: string;
+}
+
+export function ProfilePage({ profileUserId }: ProfilePageProps) {
+  const { userId: currentUserId } = useAuth();
+  const isOwnProfile = currentUserId === profileUserId;
+  const [activeTab, setActiveTab] = useState<'threads' | 'replies' | 'reposts'>('threads');
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  // 사용자 정보 가져오기
+  const { data: profileUser, isLoading: userLoading } = api.users.getById.useQuery(
+    { id: profileUserId },
+    { enabled: !!profileUserId }
   );
 
-  const {
-    data: reviews,
-    isLoading: reviewsLoading,
-    error: reviewsError,
-  } = api.reviews.getUserReviews.useQuery(undefined, {
-    enabled: !!userId,
-    retry: false,
-  });
-
-  const {
-    data: bookmarkedData,
-    isLoading: bookmarksLoading,
-    error: bookmarksError,
-  } = api.reviews.getBookmarked.useQuery(
-    {},
-    {
-      enabled: !!userId,
-      retry: false,
-    }
+  // 사용자의 다이어리 가져오기
+  const { data: diariesData, isLoading: diariesLoading } = api.musicDiary.getUserDiaries.useQuery(
+    { userId: profileUserId },
+    { enabled: !!profileUserId }
   );
 
-  const {
-    data: bookmarkedEventsData,
-    isLoading: eventsLoading,
-    error: eventsError,
-  } = api.events.getBookmarked.useQuery(
-    {},
-    {
-      enabled: !!userId,
-      retry: false,
-    }
+  // 사용자의 리뷰 가져오기
+  const { data: reviews, isLoading: reviewsLoading } = api.reviews.getUserReviews.useQuery(
+    { userId: profileUserId },
+    { enabled: !!profileUserId }
   );
 
-  const {
-    data: savedDiariesData,
-    isLoading: diariesLoading,
-    error: diariesError,
-  } = api.musicDiary.getSaved.useQuery(
-    {},
-    {
-      enabled: !!userId,
-      retry: false,
-    }
-  );
-
-  // Fetch reviewer stats
+  // 통계 정보
   const { data: reviewerStats } = api.reviewsEnhanced.getReviewerStats.useQuery(
-    { userId: userId! },
-    {
-      enabled: !!userId,
-    }
+    { userId: profileUserId },
+    { enabled: !!profileUserId }
   );
 
-  // Early return if auth is not loaded
-  if (!isLoaded) {
+  const diaries = diariesData || [];
+  const allContent = [...(diaries || []), ...(reviews || [])]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  if (userLoading || diariesLoading || reviewsLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-foreground" />
       </div>
     );
   }
 
-  if (!isSignedIn || !userId) {
-    redirect('/sign-in');
+  if (!profileUser) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">사용자를 찾을 수 없습니다</h1>
+          <Link href="/" className="text-muted-foreground hover:text-foreground underline">
+            홈으로 돌아가기
+          </Link>
+        </div>
+      </div>
+    );
   }
 
-  const bookmarkedReviews = bookmarkedData?.items || [];
-  const bookmarkedEvents = bookmarkedEventsData?.items || [];
-  const savedDiaries = savedDiariesData?.items || [];
+  const getReviewerLevelBadge = (level: string) => {
+    const badges = {
+      seedling: '🌱',
+      regular: '🌿',
+      expert: '🌳',
+      master: '⭐',
+    };
+    return badges[level as keyof typeof badges] || '';
+  };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900 sm:mb-8 sm:text-3xl">
-        내 프로필
-      </h1>
-
-      <div className="grid gap-6 lg:grid-cols-3 lg:gap-8">
-        <div className="lg:col-span-1">
-          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">
-              프로필 정보
-            </h2>
-            {user ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  {user.imageUrl ? (
-                    <Image
-                      src={user.imageUrl}
-                      alt={user.username || '프로필'}
-                      width={64}
-                      height={64}
-                      className="rounded-full"
-                    />
-                  ) : (
-                    <div className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-xl font-medium text-gray-600">
-                        {user.username?.[0]?.toUpperCase() || '?'}
-                      </span>
-                    </div>
+    <div className="min-h-screen bg-background">
+      {/* Threads 스타일 프로필 헤더 */}
+      <div className="mx-auto max-w-2xl">
+        <div className="p-4 sm:p-6">
+          {/* 프로필 정보 섹션 */}
+          <div className="mb-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  {profileUser.username || '사용자'}
+                  {reviewerStats?.reviewerLevel && (
+                    <span className="text-lg">
+                      {getReviewerLevelBadge(reviewerStats.reviewerLevel)}
+                    </span>
                   )}
-                  <div>
-                    <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                      {user.username || '사용자'}
-                      {reviewerStats?.reviewerLevel && (
-                        <span className="text-sm">
-                          {getReviewerLevelBadge(reviewerStats.reviewerLevel)}
-                        </span>
-                      )}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {user.emailAddresses?.[0]?.emailAddress}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-200">
-                  <dl className="space-y-3">
-                    <div>
-                      <dt className="text-sm font-medium text-gray-600">
-                        가입일
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {user.createdAt
-                          ? new Date(user.createdAt).toLocaleDateString('ko-KR')
-                          : '알 수 없음'}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-600">
-                        작성한 리뷰
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {reviewerStats?.reviewCount || reviews?.length || 0}개
-                      </dd>
-                    </div>
-                    {reviewerStats && (
-                      <>
-                        <div>
-                          <dt className="text-sm font-medium text-gray-600">
-                            받은 좋아요
-                          </dt>
-                          <dd className="text-sm text-gray-900">
-                            {reviewerStats.totalLikesReceived}개
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-sm font-medium text-gray-600">
-                            베스트 리뷰
-                          </dt>
-                          <dd className="text-sm text-gray-900">
-                            {reviewerStats.bestReviewCount}개
-                          </dd>
-                        </div>
-                      </>
-                    )}
-                    <div>
-                      <dt className="text-sm font-medium text-gray-600">
-                        북마크한 리뷰
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {bookmarkedReviews.length}개
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-600">
-                        저장한 다이어리
-                      </dt>
-                      <dd className="text-sm text-gray-900">
-                        {savedDiaries.length}개
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
+                </h1>
+                <p className="text-muted-foreground">
+                  @{profileUser.username?.toLowerCase() || 'user'}
+                </p>
               </div>
-            ) : (
-              <div className="flex items-center justify-center h-40">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="lg:col-span-2">
-          <div className="mb-6 border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('reviews')}
-                className={`border-b-2 pb-4 text-sm font-medium transition-colors ${
-                  activeTab === 'reviews'
-                    ? 'border-gray-900 text-gray-900'
-                    : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900'
-                }`}
-              >
-                내가 작성한 리뷰 ({reviews?.length || 0})
-              </button>
-              <button
-                onClick={() => setActiveTab('bookmarks')}
-                className={`border-b-2 pb-4 text-sm font-medium transition-colors ${
-                  activeTab === 'bookmarks'
-                    ? 'border-gray-900 text-gray-900'
-                    : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900'
-                }`}
-              >
-                북마크한 리뷰 ({bookmarkedReviews.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('events')}
-                className={`border-b-2 pb-4 text-sm font-medium transition-colors ${
-                  activeTab === 'events'
-                    ? 'border-gray-900 text-gray-900'
-                    : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900'
-                }`}
-              >
-                관심 이벤트 ({bookmarkedEvents.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('diaries')}
-                className={`border-b-2 pb-4 text-sm font-medium transition-colors ${
-                  activeTab === 'diaries'
-                    ? 'border-gray-900 text-gray-900'
-                    : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900'
-                }`}
-              >
-                저장한 다이어리 ({savedDiaries.length})
-              </button>
-            </nav>
-          </div>
-
-          {activeTab === 'reviews' ? (
-            reviewsLoading ? (
-              <div className="flex min-h-[40vh] items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
-              </div>
-            ) : reviewsError ? (
-              <div className="flex min-h-[40vh] items-center justify-center">
-                <div className="text-center">
-                  <p className="mb-2 text-lg text-red-600">
-                    리뷰를 불러오는 중 오류가 발생했습니다
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    잠시 후 다시 시도해주세요
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {reviews && reviews.length > 0 ? (
-                  reviews.map((review) => (
-                    <div
-                      key={review.id}
-                      className="rounded-lg border border-gray-200 bg-white"
-                    >
-                      <ReviewCard review={{
-                        ...review,
-                        isLiked: false,
-                        isBookmarked: false
-                      } as ReviewWithDetails} />
-                    </div>
-                  ))
+              <div className="relative h-20 w-20 sm:h-24 sm:w-24">
+                {profileUser.imageUrl ? (
+                  <Image
+                    src={profileUser.imageUrl}
+                    alt={profileUser.username || '프로필'}
+                    fill
+                    className="rounded-full object-cover"
+                  />
                 ) : (
-                  <div className="flex min-h-[40vh] items-center justify-center">
-                    <div className="text-center">
-                      <p className="mb-2 text-lg text-gray-900">
-                        아직 작성한 리뷰가 없습니다
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        이벤트에 참여하고 첫 리뷰를 작성해보세요!
-                      </p>
-                    </div>
+                  <div className="h-full w-full rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white">
+                      {profileUser.username?.[0]?.toUpperCase() || 'U'}
+                    </span>
                   </div>
                 )}
               </div>
-            )
-          ) : activeTab === 'bookmarks' ? (
-            bookmarksLoading ? (
-            <div className="flex min-h-[40vh] items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
             </div>
-          ) : bookmarksError ? (
-            <div className="flex min-h-[40vh] items-center justify-center">
-              <div className="text-center">
-                <p className="mb-2 text-lg text-red-600">
-                  북마크를 불러오는 중 오류가 발생했습니다
-                </p>
-                <p className="text-sm text-gray-600">
-                  잠시 후 다시 시도해주세요
-                </p>
-              </div>
+
+
+            {/* 통계 */}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+              <span>
+                <strong className="text-foreground">{allContent.length}</strong> 게시물
+              </span>
+              <span>
+                <strong className="text-foreground">{reviewerStats?.totalLikesReceived || 0}</strong> 좋아요
+              </span>
+              {reviewerStats?.bestReviewCount ? (
+                <span>
+                  <strong className="text-foreground">{reviewerStats.bestReviewCount}</strong> 베스트
+                </span>
+              ) : null}
             </div>
-          ) : (
-            <div className="space-y-4">
-              {bookmarkedReviews.length > 0 ? (
-                bookmarkedReviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="rounded-lg border border-gray-200 bg-white"
+
+            {/* 액션 버튼 */}
+            <div className="flex gap-2">
+              {isOwnProfile ? (
+                <>
+                  <Link
+                    href="/settings/profile"
+                    className="flex-1 px-4 py-2 text-sm font-medium border rounded-lg hover:bg-muted transition-colors flex items-center justify-center gap-2"
                   >
-                    <ReviewCard review={{
-                      ...review,
-                      isLiked: false,
-                      isBookmarked: true
-                    } as ReviewWithDetails} />
-                  </div>
-                ))
+                    <Cog6ToothIcon className="w-4 h-4" />
+                    프로필 편집
+                  </Link>
+                  <Link
+                    href="/diary?view=insights"
+                    className="flex-1 px-4 py-2 text-sm font-medium border rounded-lg hover:bg-muted transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ChartBarIcon className="w-4 h-4" />
+                    인사이트 보기
+                  </Link>
+                </>
               ) : (
-                <div className="flex min-h-[40vh] items-center justify-center">
+                <button
+                  onClick={() => setIsFollowing(!isFollowing)}
+                  className={`flex-1 px-6 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${
+                    isFollowing
+                      ? 'border hover:bg-muted'
+                      : 'bg-foreground text-background hover:opacity-90'
+                  }`}
+                >
+                  {isFollowing ? (
+                    <>
+                      <UserMinusIcon className="w-4 h-4" />
+                      팔로잉
+                    </>
+                  ) : (
+                    <>
+                      <UserPlusIcon className="w-4 h-4" />
+                      팔로우
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 탭 네비게이션 */}
+          <div className="border-b">
+            <nav className="flex">
+              <button
+                onClick={() => setActiveTab('threads')}
+                className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
+                  activeTab === 'threads'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                스레드
+                {activeTab === 'threads' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('replies')}
+                className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
+                  activeTab === 'replies'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                답글
+                {activeTab === 'replies' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('reposts')}
+                className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
+                  activeTab === 'reposts'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                리포스트
+                {activeTab === 'reposts' && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
+                )}
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* 콘텐츠 영역 */}
+        <div>
+          {activeTab === 'threads' ? (
+            <div>
+              {allContent.length > 0 ? (
+                allContent.map((item) => {
+                  // 다이어리인지 리뷰인지 확인
+                  const isDiary = 'media' in item;
+                  
+                  if (isDiary) {
+                    return (
+                      <div key={`diary-${item.id}`} className="border-b">
+                        <DiaryCard 
+                          diary={item} 
+                          user={profileUser}
+                          isLiked={false}
+                          isSaved={false}
+                        />
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div key={`review-${item.id}`} className="border-b">
+                        <ReviewCard review={{
+                          ...item,
+                          user: profileUser,
+                          isLiked: false,
+                          isBookmarked: false
+                        } as ReviewWithDetails} />
+                      </div>
+                    );
+                  }
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20">
                   <div className="text-center">
-                    <p className="mb-2 text-lg text-gray-900">
-                      아직 북마크한 리뷰가 없습니다
+                    <CalendarDaysIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium mb-2">
+                      아직 작성한 콘텐츠가 없습니다
                     </p>
-                    <p className="text-sm text-gray-600">
-                      마음에 드는 리뷰를 북마크해보세요!
-                    </p>
+                    {isOwnProfile && (
+                      <p className="text-sm text-muted-foreground">
+                        첫 순간을 기록해보세요!
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
             </div>
-            )
-          ) : activeTab === 'events' ? (
-            eventsLoading ? (
-              <div className="flex min-h-[40vh] items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
+          ) : activeTab === 'replies' ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="text-center">
+                <p className="text-muted-foreground">
+                  답글이 표시됩니다
+                </p>
               </div>
-            ) : eventsError ? (
-              <div className="flex min-h-[40vh] items-center justify-center">
-                <div className="text-center">
-                  <p className="mb-2 text-lg text-red-600">
-                    이벤트를 불러오는 중 오류가 발생했습니다
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    잠시 후 다시 시도해주세요
-                  </p>
-                </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="text-center">
+                <p className="text-muted-foreground">
+                  리포스트가 표시됩니다
+                </p>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {bookmarkedEvents.length > 0 ? (
-                  bookmarkedEvents.map((event) => (
-                    <Link
-                      key={event.id}
-                      href={`/events/${event.id}`}
-                      className="block rounded-lg border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold text-gray-900 hover:text-purple-600 transition-colors">
-                            {event.name}
-                          </h3>
-                          <div className="mt-2 space-y-1 text-sm text-gray-600">
-                            {event.dates?.start && (
-                              <p>
-                                📅 {new Date(event.dates.start).toLocaleDateString('ko-KR', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
-                                {event.dates.end && event.dates.end !== event.dates.start && (
-                                  <span>
-                                    {' ~ '}
-                                    {new Date(event.dates.end).toLocaleDateString('ko-KR', {
-                                      year: 'numeric',
-                                      month: 'long',
-                                      day: 'numeric'
-                                    })}
-                                  </span>
-                                )}
-                              </p>
-                            )}
-                            {event.location && <p>📍 {event.location}</p>}
-                          </div>
-                        </div>
-                        {event.category && (
-                          <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700">
-                            {event.category}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  ))
-                ) : (
-                  <div className="flex min-h-[40vh] items-center justify-center">
-                    <div className="text-center">
-                      <p className="mb-2 text-lg text-gray-900">
-                        아직 관심 이벤트가 없습니다
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        참가하고 싶은 이벤트를 북마크해보세요!
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          ) : activeTab === 'diaries' ? (
-            diariesLoading ? (
-              <div className="flex min-h-[40vh] items-center justify-center">
-                <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
-              </div>
-            ) : diariesError ? (
-              <div className="flex min-h-[40vh] items-center justify-center">
-                <div className="text-center">
-                  <p className="mb-2 text-lg text-red-600">
-                    다이어리를 불러오는 중 오류가 발생했습니다
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    잠시 후 다시 시도해주세요
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-1 sm:gap-2">
-                {savedDiaries.length > 0 ? (
-                  savedDiaries.map(({ diary }) => (
-                    <Link
-                      key={diary.id}
-                      href={`/diary/${diary.id}`}
-                      className="relative aspect-square overflow-hidden bg-gray-100 rounded-sm"
-                    >
-                      {diary.media[0] && (
-                        <Image
-                          src={diary.media[0].url}
-                          alt="Diary"
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                        />
-                      )}
-                      {diary.media.length > 1 && (
-                        <div className="absolute top-2 right-2">
-                          <svg className="w-5 h-5 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" />
-                          </svg>
-                        </div>
-                      )}
-                    </Link>
-                  ))
-                ) : (
-                  <div className="col-span-3 flex min-h-[40vh] items-center justify-center">
-                    <div className="text-center">
-                      <p className="mb-2 text-lg text-gray-900">
-                        아직 저장한 다이어리가 없습니다
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        마음에 드는 다이어리를 저장해보세요!
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          ) : null}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function getReviewerLevelBadge(level: string) {
-  const badges = {
-    seedling: '🌱',
-    regular: '🌿',
-    expert: '🌳',
-    master: '⭐',
-  };
-  return badges[level as keyof typeof badges] || '';
-}

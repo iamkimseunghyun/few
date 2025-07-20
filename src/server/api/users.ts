@@ -21,6 +21,30 @@ export const usersRouter = createTRPCRouter({
     return user[0] || null;
   }),
 
+  // Get user by ID
+  getById: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const user = await ctx.db
+        .select()
+        .from(users)
+        .where(eq(users.id, input.id))
+        .limit(1);
+      
+      if (!user[0]) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'User not found',
+        });
+      }
+      
+      return user[0];
+    }),
+
   getAll: adminProcedure
     .input(
       z.object({

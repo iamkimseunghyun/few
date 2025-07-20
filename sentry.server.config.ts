@@ -18,8 +18,8 @@ if (process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN) {
   // 프로파일링 (Node.js 16+ 필요)
   profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
-  // 디버그 모드
-  debug: process.env.NODE_ENV === 'development',
+  // 디버그 모드 비활성화 (너무 많은 로그 방지)
+  debug: false,
 
   // 서버 사이드 특화 설정
   integrations: [
@@ -48,10 +48,18 @@ if (process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN) {
 
   // 추가 컨텍스트
   beforeSend(event, hint) {
-    // 개발 환경 로깅
+    // 개발 환경에서는 특정 에러만 전송
     if (process.env.NODE_ENV === 'development') {
-      console.error('Sentry Server Event:', event);
-      console.error('Error:', hint.originalException);
+      // 404 에러는 무시
+      if (event.exception?.values?.[0]?.value?.includes('404') ||
+          event.exception?.values?.[0]?.value?.includes('NEXT_NOT_FOUND')) {
+        return null;
+      }
+      
+      // symbolicate 관련 에러는 무시
+      if (event.exception?.values?.[0]?.value?.includes('symbolicate')) {
+        return null;
+      }
     }
 
     // 민감한 정보 제거

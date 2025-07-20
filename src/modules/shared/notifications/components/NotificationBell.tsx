@@ -30,7 +30,7 @@ export function NotificationBell() {
   if (!isLoaded || !isSignedIn) return null;
 
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block" data-testid="notification-bell">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative inline-flex p-2 text-muted-foreground hover:text-foreground transition-colors"

@@ -25,6 +25,8 @@ export { OptimizedImage } from "./ui/components/OptimizedImage";
 export { ConfirmModal } from "./ui/components/ConfirmModal";
 export { Toast, useToast } from "./ui/components/Toast";
 export { toast } from "./hooks/useToast";
+export { MediaGallery } from "./ui/components/MediaGallery";
+export type { MediaItem, MediaGalleryProps } from "./ui/components/MediaGallery";
 
 // Hooks
 export { useInfiniteScroll } from "./hooks/useInfiniteScroll";

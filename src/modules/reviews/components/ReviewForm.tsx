@@ -10,6 +10,7 @@ import { MediaUpload } from './MediaUpload';
 import { useDebounce } from '@/modules/shared/hooks/useDebounce';
 import { useReviewDraft } from '../hooks/useReviewDraft';
 import { toast } from '@/modules/shared/hooks/useToast';
+import { trackEvent } from '@/lib/analytics';
 
 const reviewSchema = z.object({
   title: z
@@ -207,6 +208,13 @@ export function ReviewForm({
         });
       } else {
         await createReview.mutateAsync(submitData);
+        // 리뷰 작성 완료 추적
+        if (data.eventId) {
+          trackEvent('submit_review', { 
+            eventId: data.eventId, 
+            rating: data.overallRating 
+          });
+        }
       }
     } catch (error) {
       console.error('리뷰 작성 실패:', error);

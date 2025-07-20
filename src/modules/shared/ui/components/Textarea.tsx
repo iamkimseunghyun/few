@@ -1,10 +1,10 @@
-import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
-export type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;
+export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  ref?: React.Ref<HTMLTextAreaElement>;
+}
 
-const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, ...props }, ref) => {
+const Textarea = ({ className, ref, ...props }: TextareaProps) => {
     return (
       <textarea
         className={cn(
@@ -15,9 +15,6 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         {...props}
       />
     );
-  }
-);
-
-Textarea.displayName = 'Textarea';
+  };
 
 export { Textarea };

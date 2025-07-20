@@ -12,6 +12,7 @@ import { Button } from '@/modules/shared/ui/components/Button';
 import { Input } from '@/modules/shared/ui/components/Input';
 import { Textarea } from '@/modules/shared/ui/components/Textarea';
 import { toast } from '@/modules/shared/hooks/useToast';
+import { trackEvent } from '@/lib/analytics';
 
 const createDiarySchema = z.object({
   caption: z.string().max(2000).optional(),
@@ -21,6 +22,7 @@ const createDiarySchema = z.object({
   setlist: z.array(z.string()).optional(),
   moments: z.array(z.string()).optional(),
   mood: z.string().optional(),
+  weather: z.string().optional(),
   isPublic: z.boolean(),
 });
 
@@ -32,6 +34,7 @@ type CreateDiaryFormData = {
   setlist?: string[];
   moments?: string[];
   mood?: string;
+  weather?: string;
   isPublic: boolean;
 };
 
@@ -46,7 +49,12 @@ interface MediaFile {
   error?: string;
 }
 
-export function CreateDiaryForm() {
+interface CreateDiaryFormProps {
+  onSuccess?: () => void;
+  defaultPrivate?: boolean;
+}
+
+export function CreateDiaryForm({ onSuccess, defaultPrivate = false }: CreateDiaryFormProps) {
   const router = useRouter();
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,10 +63,33 @@ export function CreateDiaryForm() {
   const [isComposing, setIsComposing] = useState(false);
   
   const { mutate: createDiary } = api.musicDiary.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (diary) => {
       toast.success('다이어리가 성공적으로 작성되었습니다!');
+      // 다이어리 작성 추적
+      if (diary.eventId) {
+        trackEvent('create_diary', { eventId: diary.eventId });
+      }
     },
     onError: (error) => {
+      console.error('Create diary error:', error);
+      console.error('Error shape:', error.shape);
+      console.error('Error data:', error.data);
+      
+      // Check for Zod validation errors
+      if (error.data?.zodError) {
+        const zodErrors = error.data.zodError;
+        console.error('Zod validation errors:', zodErrors);
+        
+        // Show first field error
+        const firstError = Object.entries(zodErrors.fieldErrors || {})[0];
+        if (firstError) {
+          const [field, errors] = firstError;
+          const errorMessage = Array.isArray(errors) ? errors[0] : 'Invalid value';
+          toast.error(`${field}: ${errorMessage}`);
+          return;
+        }
+      }
+      
       toast.error('다이어리 작성에 실패했습니다', {
         description: error.message || '잠시 후 다시 시도해주세요.'
       });
@@ -78,7 +109,7 @@ export function CreateDiaryForm() {
   } = useForm<CreateDiaryFormData>({
     resolver: zodResolver(createDiarySchema),
     defaultValues: {
-      isPublic: true,
+      isPublic: !defaultPrivate,
       artists: [],
       setlist: [],
       moments: [],
@@ -126,12 +157,21 @@ export function CreateDiaryForm() {
           });
 
           const result = await response.json();
+          console.log('Upload response for', media.file.name, ':', result);
 
           if (!response.ok) {
             throw new Error(result.error || 'Upload failed');
           }
 
+          if (!result.successful || result.successful.length === 0) {
+            throw new Error('No successful uploads in response');
+          }
+
           const uploadedFile = result.successful[0];
+          
+          if (!uploadedFile || !uploadedFile.url) {
+            throw new Error('Invalid upload response - missing URL');
+          }
           
           setMediaFiles(prev =>
             prev.map(m =>
@@ -159,11 +199,14 @@ export function CreateDiaryForm() {
                 : m
             )
           );
-          throw error;
+          console.error('Upload error for file:', media.file.name, error);
+          return null; // Return null instead of throwing
         }
       });
 
-    return Promise.all(uploadPromises);
+    const results = await Promise.all(uploadPromises);
+    // Filter out null values (failed uploads)
+    return results.filter(result => result !== null);
   };
 
   // Remove media file
@@ -183,20 +226,54 @@ export function CreateDiaryForm() {
     try {
       // Upload all media files first
       const uploadedMedia = await uploadMedia();
+      
+      // Filter out any undefined or failed uploads
+      const validUploads = uploadedMedia.filter(m => m && m.url && m.type);
+
+      // Check if any uploads were successful
+      if (validUploads.length === 0) {
+        throw new Error('모든 파일 업로드에 실패했습니다.');
+      }
+
+      // 사진 업로드 추적
+      if (validUploads.length > 0) {
+        trackEvent('upload_diary_photo', { count: validUploads.length });
+      }
+
+      // Debug: log the data being sent
+      console.log('Form data:', data);
+      console.log('Valid uploads:', validUploads);
+      
+      const diaryData = {
+        caption: data.caption || undefined,
+        location: data.location || undefined,
+        eventId: data.eventId || undefined,
+        artists: data.artists?.length ? data.artists : undefined,
+        setlist: data.setlist?.length ? data.setlist : undefined,
+        moments: data.moments?.length ? data.moments : undefined,
+        mood: data.mood || undefined,
+        weather: data.weather || undefined,
+        isPublic: data.isPublic ?? true,
+        media: validUploads.map(m => ({
+          url: m.url,
+          type: m.type as 'image' | 'video',
+          thumbnailUrl: m.thumbnailUrl || undefined,
+        })),
+      };
+      
+      console.log('Diary data being sent:', diaryData);
 
       // Create diary entry
       createDiary(
-        {
-          ...data,
-          media: uploadedMedia.map(m => ({
-            url: m.url,
-            type: m.type,
-            thumbnailUrl: m.thumbnailUrl,
-          })),
-        },
+        diaryData,
         {
           onSuccess: (diary) => {
-            router.push(`/diary/${diary.id}`);
+            if (onSuccess) {
+              onSuccess();
+            } else {
+              // Use window.location to bypass intercepting route and go directly to the page
+              window.location.href = `/diary/${diary.id}`;
+            }
           },
         }
       );
@@ -458,6 +535,25 @@ export function CreateDiaryForm() {
           <option value="열정적인">🔥 열정적인</option>
           <option value="평화로운">😌 평화로운</option>
           <option value="몽환적인">✨ 몽환적인</option>
+        </select>
+      </div>
+
+      {/* Weather */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          날씨
+        </label>
+        <select
+          {...register('weather')}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+        >
+          <option value="">선택하세요</option>
+          <option value="sunny">☀️ 맑음</option>
+          <option value="cloudy">☁️ 흐림</option>
+          <option value="rainy">🌧️ 비</option>
+          <option value="snowy">❄️ 눈</option>
+          <option value="windy">💨 바람</option>
+          <option value="foggy">🌫️ 안개</option>
         </select>
       </div>
 

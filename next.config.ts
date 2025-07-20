@@ -1,16 +1,15 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
+import bundleAnalyzer from '@next/bundle-analyzer';
 
 // Bundle analyzer 설정
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
+const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
 
 const nextConfig: NextConfig = {
   // Turbopack configuration
   experimental: {
-    // Enable instrumentation hook for Sentry
-    instrumentationHook: true,
     // optimizePackageImports helps with tree-shaking
     optimizePackageImports: [
       '@clerk/nextjs',
@@ -118,9 +117,12 @@ const nextConfig: NextConfig = {
   // 컴파일러 최적화
   compiler: {
     // Remove console logs in production
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn'],
-    } : false,
+    removeConsole:
+      process.env.NODE_ENV === 'production'
+        ? {
+            exclude: ['error', 'warn'],
+          }
+        : false,
   },
 
   // 모듈 ID 최적화
@@ -149,7 +151,7 @@ export default withSentryConfig(configWithAnalyzer, {
   // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
   // This can increase your server load as well as your hosting bill.
   // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
+  // Side errors will fail.
   tunnelRoute: '/monitoring',
 
   // Automatically tree-shake Sentry logger statements to reduce bundle size

@@ -1,6 +1,6 @@
 import { pgTable, text, timestamp, unique, index, check } from 'drizzle-orm/pg-core';
 import { createId } from '@paralleldrive/cuid2';
-import { users } from '../schema';
+import { users } from './users';
 import { sql } from 'drizzle-orm';
 
 export const follows = pgTable('follows', {
@@ -20,3 +20,7 @@ export const follows = pgTable('follows', {
   followingIdIdx: index('idx_follows_following_id').on(table.followingId),
   createdAtIdx: index('idx_follows_created_at').on(table.createdAt.desc()),
 }));
+
+// Type exports for TypeScript
+export type Follow = typeof follows.$inferSelect;
+export type NewFollow = typeof follows.$inferInsert;

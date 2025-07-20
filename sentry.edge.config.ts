@@ -16,8 +16,8 @@ if (process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN) {
   // Edge Runtime에서는 낮은 샘플링 비율 사용
   tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.05 : 0.5,
 
-  // 디버그 모드
-  debug: process.env.NODE_ENV === 'development',
+  // 디버그 모드 비활성화 (너무 많은 로그 방지)
+  debug: false,
 
   // Edge 특화 설정
   integrations: [
@@ -39,9 +39,14 @@ if (process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN) {
       runtime: 'edge',
     };
 
-    // 개발 환경 로깅
+    // 개발 환경에서는 특정 에러만 전송
     if (process.env.NODE_ENV === 'development') {
-      console.error('Sentry Edge Event:', event);
+      // 404, 리다이렉트 관련 에러는 무시
+      if (event.exception?.values?.[0]?.value?.includes('404') ||
+          event.exception?.values?.[0]?.value?.includes('NEXT_NOT_FOUND') ||
+          event.exception?.values?.[0]?.value?.includes('NEXT_REDIRECT')) {
+        return null;
+      }
     }
 
     // 민감한 정보 제거

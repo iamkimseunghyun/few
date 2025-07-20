@@ -1,17 +1,20 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { useEffect, useCallback } from "react";
 import { api } from "@/lib/trpc";
 import { SearchBar } from "@/modules/shared/search/components/SearchBar";
 import Link from "next/link";
 import Image from "next/image";
 import { Calendar, MapPin, Star, User } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
+import { PullToRefresh } from "@/components/PullToRefresh";
 
 export function SearchResults() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
 
-  const { data: results, isLoading } = api.search.global.useQuery(
+  const { data: results, isLoading, refetch } = api.search.global.useQuery(
     {
       query,
       limit: 20,
@@ -21,7 +24,7 @@ export function SearchResults() {
     }
   );
 
-  const getTotalCount = () => {
+  const getTotalCount = useCallback(() => {
     if (!results) return 0;
     return (
       results.events.length +
@@ -29,10 +32,21 @@ export function SearchResults() {
       (results.users?.length || 0) +
       (results.diaries?.length || 0)
     );
-  };
+  }, [results]);
+
+  // 검색 추적
+  useEffect(() => {
+    if (query && results) {
+      trackEvent('search', { 
+        query, 
+        resultCount: getTotalCount() 
+      });
+    }
+  }, [query, results, getTotalCount]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
+    <PullToRefresh onRefresh={async () => { await refetch(); }}>
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
       <div className="mb-8">
         <h1 className="mb-6 text-3xl font-bold text-foreground">검색</h1>
         <SearchBar />
@@ -275,5 +289,6 @@ export function SearchResults() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }

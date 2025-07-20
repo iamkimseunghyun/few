@@ -7,17 +7,10 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import { type EventCategory } from '@/lib/db/schema';
-import '@/modules/events/styles/calendar.css';
-
-// 동적 import로 초기 로딩 시간 단축
-const EventCalendar = dynamic(
-  () => import('@/modules/events/components/EventCalendar'),
-  { 
-    loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" />,
-    ssr: true 
-  }
-);
+import { PullToRefresh } from '@/components/PullToRefresh';
+import { DiaryCalendarView } from '@/modules/music-diary/components/DiaryCalendarView';
 
 const BestReviewsSection = dynamic(
   () => import('./BestReviewsSection').then(mod => mod.BestReviewsSection),
@@ -35,6 +28,7 @@ const categoryLabels: Record<EventCategory, string> = {
 
 export function HomePage() {
   const queryClient = useQueryClient();
+  const [selectedDate, setSelectedDate] = useState(new Date());
   
   // 홈페이지 데이터 프리페칭
   useEffect(() => {
@@ -42,14 +36,23 @@ export function HomePage() {
   }, [queryClient]);
   
   // 캐싱된 쿼리 사용
-  const { data: recentReviews } = useCachedReviews.list({
+  const { data: recentReviews, refetch: refetchReviews } = useCachedReviews.list({
     limit: 3,
   });
 
-  const { data: upcomingEvents } = useCachedEvents.upcoming();
+  const { data: upcomingEvents, refetch: refetchEvents } = useCachedEvents.upcoming();
+
+  // Pull to refresh 핸들러
+  const handleRefresh = async () => {
+    await Promise.all([
+      refetchReviews(),
+      refetchEvents(),
+    ]);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 px-4 py-12 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
@@ -67,7 +70,11 @@ export function HomePage() {
       {/* Main Calendar Section */}
       <section className="px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <EventCalendar />
+          <DiaryCalendarView 
+            mode="event"
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
+          />
         </div>
       </section>
 
@@ -202,5 +209,6 @@ export function HomePage() {
         </div>
       </section>
     </div>
+    </PullToRefresh>
   );
 }

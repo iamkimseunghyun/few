@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
@@ -9,6 +9,7 @@ import { EventDetail } from "./EventDetail";
 import { ReviewCard, ReviewForm } from "@/modules/reviews";
 import { useToast } from "@/modules/shared";
 import type { ReviewWithDetails } from "@/modules/reviews/types";
+import { trackEvent } from "@/lib/analytics";
 
 export function EventDetailPage() {
   const params = useParams();
@@ -29,6 +30,17 @@ export function EventDetailPage() {
     { id: eventId },
     { enabled: isSignedIn }
   );
+
+  // 이벤트 상세 페이지 뷰 추적
+  useEffect(() => {
+    if (event) {
+      trackEvent('view_event_detail', {
+        eventId: event.id,
+        eventName: event.name,
+        category: event.category || 'unknown'
+      });
+    }
+  }, [event]);
 
   const utils = api.useUtils();
   const toggleBookmark = api.events.toggleBookmark.useMutation({
@@ -159,7 +171,10 @@ export function EventDetailPage() {
                 </div>
               ) : (
                 <button
-                  onClick={() => setShowReviewForm(true)}
+                  onClick={() => {
+                    setShowReviewForm(true);
+                    trackEvent('start_review', { eventId });
+                  }}
                   className="w-full rounded-lg bg-gray-900 py-3 font-medium text-white transition-colors hover:bg-gray-800"
                 >
                   리뷰 작성하기

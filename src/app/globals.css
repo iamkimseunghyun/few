@@ -1,5 +1,22 @@
 @import 'tailwindcss';
 
+@layer utilities {
+  @keyframes ripple {
+    0% {
+      transform: scale(0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+
+  .animate-ripple {
+    animation: ripple var(--duration, 600ms) ease-out;
+  }
+}
+
 @theme {
   /* Light mode colors */
   --color-background: #ffffff;

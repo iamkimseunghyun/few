@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { api } from '@/lib/trpc-server';
-import { UserProfile } from '@/modules/user/components/UserProfile';
+import { ProfilePage } from '@/modules/profile/components/ProfilePage';
 
 interface PageProps {
   params: Promise<{ userId: string }>;
@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { userId } = await params;
   
   try {
-    const user = await api.user.getById({ id: userId });
+    const user = await api.users.getById({ id: userId });
     
     return {
       title: `${user.username} - few`,
@@ -25,17 +25,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function ProfilePage({ params }: PageProps) {
+export default async function UserProfilePage({ params }: PageProps) {
   const { userId } = await params;
   
   try {
-    const user = await api.user.getById({ id: userId });
+    const user = await api.users.getById({ id: userId });
     
     if (!user) {
       notFound();
     }
     
-    return <UserProfile userId={userId} />;
+    return <ProfilePage profileUserId={userId} />;
   } catch {
     notFound();
   }

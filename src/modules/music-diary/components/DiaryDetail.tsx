@@ -22,7 +22,7 @@ import {
   User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MediaCarousel } from './MediaCarousel';
+import { MediaGallery } from '@/modules/shared/ui/components/MediaGallery';
 import { DiaryComments } from './DiaryComments';
 import { ConfirmModal } from '@/modules/shared';
 
@@ -170,7 +170,7 @@ export function DiaryDetail({ initialData }: DiaryDetailProps) {
             {/* Media Section */}
             <div className="lg:flex-1 lg:flex lg:items-center lg:justify-center bg-black">
               <div className="w-full">
-                <MediaCarousel media={diary.media} />
+                <MediaGallery media={Array.isArray(diary.media) ? diary.media : []} />
               </div>
             </div>
 
@@ -236,13 +236,13 @@ export function DiaryDetail({ initialData }: DiaryDetailProps) {
                   )}
 
                   {/* Artists */}
-                  {diary.artists && diary.artists.length > 0 && (
+                  {diary.artists && Array.isArray(diary.artists) && diary.artists.length > 0 && (
                     <div className="flex items-start gap-2 text-sm">
                       <Music className="w-4 h-4 text-muted-foreground mt-0.5" />
                       <div className="flex-1">
                         <p className="font-medium mb-1">아티스트</p>
                         <div className="flex flex-wrap gap-2">
-                          {diary.artists.map((artist, index) => (
+                          {(diary.artists as string[]).map((artist, index) => (
                             <span
                               key={index}
                               className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs"
@@ -256,11 +256,11 @@ export function DiaryDetail({ initialData }: DiaryDetailProps) {
                   )}
 
                   {/* Setlist */}
-                  {diary.setlist && diary.setlist.length > 0 && (
+                  {diary.setlist && Array.isArray(diary.setlist) && diary.setlist.length > 0 && (
                     <div className="text-sm">
                       <p className="font-medium mb-2">셋리스트</p>
                       <ol className="list-decimal list-inside space-y-1">
-                        {diary.setlist.map((song, index) => (
+                        {(diary.setlist as string[]).map((song, index) => (
                           <li key={index} className="text-muted-foreground">
                             {song}
                           </li>
@@ -270,11 +270,11 @@ export function DiaryDetail({ initialData }: DiaryDetailProps) {
                   )}
 
                   {/* Moments */}
-                  {diary.moments && diary.moments.length > 0 && (
+                  {diary.moments && Array.isArray(diary.moments) && diary.moments.length > 0 && (
                     <div className="text-sm">
                       <p className="font-medium mb-2">기억하고 싶은 순간</p>
                       <div className="space-y-2">
-                        {diary.moments.map((moment, index) => (
+                        {(diary.moments as string[]).map((moment, index) => (
                           <p key={index} className="text-muted-foreground">
                             • {moment}
                           </p>

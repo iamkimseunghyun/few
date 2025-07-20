@@ -1,12 +1,7 @@
-<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'>
-  <rect width='400' height='300' fill='#f3f4f6'/>
-  <g fill='none' stroke='#9ca3af' stroke-width='2'>
-    <path d='M100 200L150 150L200 175L250 125L300 175'/>
-    <circle cx='100' cy='200' r='5' fill='#9ca3af'/>
-    <circle cx='150' cy='150' r='5' fill='#9ca3af'/>
-    <circle cx='200' cy='175' r='5' fill='#9ca3af'/>
-    <circle cx='250' cy='125' r='5' fill='#9ca3af'/>
-    <circle cx='300' cy='175' r='5' fill='#9ca3af'/>
-  </g>
-  <text x='200' y='240' text-anchor='middle' fill='#6b7280' font-family='sans-serif' font-size='14'>Image Placeholder</text>
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#F3F4F6"/>
+  <path d="M200 140C177.909 140 160 157.909 160 180C160 202.091 177.909 220 200 220C222.091 220 240 202.091 240 180C240 157.909 222.091 140 200 140ZM200 200C188.954 200 180 191.046 180 180C180 168.954 188.954 160 200 160C211.046 160 220 168.954 220 180C220 191.046 211.046 200 200 200Z" fill="#9CA3AF"/>
+  <path d="M320 100H280C280 88.9543 271.046 80 260 80H140C128.954 80 120 88.9543 120 100H80C68.9543 100 60 108.954 60 120V280C60 291.046 68.9543 300 80 300H320C331.046 300 340 291.046 340 280V120C340 108.954 331.046 100 320 100ZM320 280H80V120H140V110C140 104.477 144.477 100 150 100H250C255.523 100 260 104.477 260 110V120H320V280Z" fill="#9CA3AF"/>
+  <path d="M80 240L120 200L160 240L220 180L280 240L320 200" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
+EOF < /dev/null

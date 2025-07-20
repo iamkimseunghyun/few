@@ -7,6 +7,9 @@ import { ThemeScript } from '@/modules/shared/theme/scripts/theme-script';
 import { MobileNav } from '@/modules/shared/navigation/components/MobileNav';
 import { Toaster } from 'sonner';
 import { Providers } from './providers';
+import { Analytics } from '@/components/Analytics';
+import { GoogleAnalytics } from '@/components/GoogleAnalytics';
+import { WebVitals } from './web-vitals';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -64,8 +67,8 @@ export default function RootLayout({
             <div className="flex min-h-screen flex-col">
               <Header />
               <main className="flex-1 pb-16 lg:pb-0">{children}</main>
-              <footer className="hidden border-t border-border bg-muted lg:block">
-                <div className="mx-auto max-w-6xl px-6 py-12">
+              <footer className="hidden border-t border-border bg-background lg:block">
+                <div className="mx-auto max-w-6xl px-6 py-8">
                   <p className="text-center text-sm text-muted-foreground">
                     © 2024 few. 우리의 취향과 꿀팁이 모이는 공간.
                   </p>
@@ -82,6 +85,9 @@ export default function RootLayout({
               theme="system"
             />
           </ErrorBoundary>
+          <Analytics />
+          <GoogleAnalytics />
+          <WebVitals />
         </Providers>
       </body>
     </html>

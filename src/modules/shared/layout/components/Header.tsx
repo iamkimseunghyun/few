@@ -32,23 +32,22 @@ export function Header() {
             href="/events"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            이벤트
+            공연
           </Link>
           <Link
             href="/diary"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            다이어리
+            순간
           </Link>
           <Link
             href="/reviews"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            리뷰
+            기록
           </Link>
           {isSignedIn && (
             <>
-              <NotificationBell />
               {currentUser?.isAdmin && (
                 <Link
                   href="/admin"
@@ -57,12 +56,7 @@ export function Header() {
                   관리자
                 </Link>
               )}
-              <Link
-                href="/profile"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                프로필
-              </Link>
+              <NotificationBell />
             </>
           )}
           <ThemeToggle />
@@ -86,8 +80,8 @@ export function Header() {
         {/* Mobile Navigation - Simplified for bottom nav */}
         <div className="flex items-center gap-2 sm:hidden">
           <SearchBar className="flex-1" />
-          {isSignedIn && <NotificationBell />}
           <ThemeToggle />
+          {isSignedIn && <NotificationBell />}
         </div>
       </div>
     </header>

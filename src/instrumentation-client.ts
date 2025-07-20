@@ -29,8 +29,8 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
   replaysSessionSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0,
   replaysOnErrorSampleRate: process.env.NODE_ENV === 'production' ? 1.0 : 0,
 
-  // 디버그 모드 (개발 환경에서만)
-  debug: process.env.NODE_ENV === 'development',
+  // 디버그 모드 비활성화 (너무 많은 로그 방지)
+  debug: false,
 
   // 무시할 에러 패턴
   ignoreErrors: [
@@ -44,14 +44,26 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     // ResizeObserver 관련 무해한 에러
     'ResizeObserver loop limit exceeded',
     'ResizeObserver loop completed with undelivered notifications',
+    // Next.js dev server 관련 에러
+    'NEXT_HTTP_ERROR_FALLBACK',
+    'Failed to symbolicate event with Next.js dev server',
+    'Cannot read properties of undefined (reading \'originalCodeFrame\')',
   ],
 
   // 추가 컨텍스트 정보
-  beforeSend(event, hint) {
-    // 개발 환경에서는 콘솔에도 에러 출력
+  beforeSend(event) {
+    // 개발 환경에서는 특정 에러만 Sentry로 전송
     if (process.env.NODE_ENV === 'development') {
-      console.error('Sentry Event:', event);
-      console.error('Error:', hint.originalException);
+      // 404 에러는 무시
+      if (event.exception?.values?.[0]?.value?.includes('404')) {
+        return null;
+      }
+      
+      // Next.js dev server 관련 에러는 무시
+      if (event.exception?.values?.[0]?.value?.includes('symbolicate') ||
+          event.exception?.values?.[0]?.value?.includes('originalCodeFrame')) {
+        return null;
+      }
     }
 
     // 민감한 정보 제거

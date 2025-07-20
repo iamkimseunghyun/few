@@ -52,6 +52,7 @@ export function SearchBar({ className }: SearchBarProps) {
       <form onSubmit={handleSubmit}>
         <input
           type="search"
+          data-testid="search-input-header"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);

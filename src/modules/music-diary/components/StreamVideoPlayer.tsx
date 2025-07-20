@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, useImperativeHandle } from 'react';
 
 interface StreamVideoPlayerProps {
   url: string;
@@ -10,9 +10,10 @@ interface StreamVideoPlayerProps {
   autoPlay?: boolean;
   muted?: boolean;
   loop?: boolean;
+  ref?: React.Ref<HTMLVideoElement>;
 }
 
-export const StreamVideoPlayer = forwardRef<HTMLVideoElement, StreamVideoPlayerProps>(({
+export const StreamVideoPlayer = ({
   url,
   thumbnailUrl,
   className = '',
@@ -20,7 +21,8 @@ export const StreamVideoPlayer = forwardRef<HTMLVideoElement, StreamVideoPlayerP
   autoPlay = false,
   muted = false,
   loop = false,
-}, ref) => {
+  ref,
+}: StreamVideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   
   // 외부에서 ref를 사용할 수 있도록 전달
@@ -89,10 +91,10 @@ export const StreamVideoPlayer = forwardRef<HTMLVideoElement, StreamVideoPlayerP
       loop={loop}
       playsInline
       poster={thumbnailUrl}
+      preload="metadata"
+      style={{ backgroundColor: '#000' }}
     >
       Your browser does not support the video tag.
     </video>
   );
-});
-
-StreamVideoPlayer.displayName = 'StreamVideoPlayer';
+};

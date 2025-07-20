@@ -18,6 +18,7 @@ export function SearchBar() {
     <form onSubmit={handleSearch} className="relative">
       <input
         type="text"
+        data-testid="search-input-home"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="이벤트, 장소, 리뷰 검색..."

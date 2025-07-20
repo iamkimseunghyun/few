@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '@/server/trpc';
 import { musicDiaries, diaryLikes, diaryComments, diarySaves } from '@/lib/db/schema/music-diary';
-import { users, follows } from '@/lib/db/schema';
+import { users, follows, events } from '@/lib/db/schema';
 import { eq, desc, and, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { notificationHelpers } from '@/server/utils/notifications';
@@ -24,6 +24,7 @@ const createDiarySchema = z.object({
   setlist: z.array(z.string()).optional(),
   moments: z.array(z.string()).optional(),
   mood: z.string().optional(),
+  weather: z.string().optional(),
   isPublic: z.boolean().default(true),
 });
 
@@ -490,6 +491,7 @@ export const musicDiaryRouter = createTRPCRouter({
           setlist: musicDiaries.setlist,
           moments: musicDiaries.moments,
           mood: musicDiaries.mood,
+          weather: musicDiaries.weather,
           likeCount: musicDiaries.likeCount,
           commentCount: musicDiaries.commentCount,
           viewCount: musicDiaries.viewCount,
@@ -597,5 +599,72 @@ export const musicDiaryRouter = createTRPCRouter({
       );
       
       return diariesWithMeta;
+    }),
+
+  // Get current user's diaries (including private ones)
+  getMyDiaries: protectedProcedure
+    .input(
+      z.object({
+        includePrivate: z.boolean().default(true),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const whereConditions = [
+        eq(musicDiaries.userId, ctx.userId),
+      ];
+
+      // Only include public diaries if requested
+      if (!input.includePrivate) {
+        whereConditions.push(eq(musicDiaries.isPublic, true));
+      }
+
+      const diaries = await db
+        .select({
+          id: musicDiaries.id,
+          userId: musicDiaries.userId,
+          eventId: musicDiaries.eventId,
+          media: musicDiaries.media,
+          caption: musicDiaries.caption,
+          location: musicDiaries.location,
+          artists: musicDiaries.artists,
+          setlist: musicDiaries.setlist,
+          moments: musicDiaries.moments,
+          mood: musicDiaries.mood,
+          weather: musicDiaries.weather,
+          isPublic: musicDiaries.isPublic,
+          likeCount: musicDiaries.likeCount,
+          commentCount: musicDiaries.commentCount,
+          viewCount: musicDiaries.viewCount,
+          createdAt: musicDiaries.createdAt,
+          updatedAt: musicDiaries.updatedAt,
+        })
+        .from(musicDiaries)
+        .where(and(...whereConditions))
+        .orderBy(desc(musicDiaries.createdAt));
+
+      // Get event information for each diary
+      const diariesWithEvents = await Promise.all(
+        diaries.map(async (diary) => {
+          let event = null;
+          if (diary.eventId) {
+            const [eventData] = await db
+              .select({
+                id: events.id,
+                name: events.name,
+              })
+              .from(events)
+              .where(eq(events.id, diary.eventId))
+              .limit(1);
+            event = eventData || null;
+          }
+
+          return {
+            ...diary,
+            event,
+          };
+        })
+      );
+
+      return diariesWithEvents;
     }),
 });

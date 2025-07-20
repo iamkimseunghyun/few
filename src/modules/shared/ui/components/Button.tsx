@@ -1,13 +1,12 @@
-import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'default' | 'outline' | 'ghost' | 'link';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'default', size = 'default', ...props }, ref) => {
+const Button = ({ className, variant = 'default', size = 'default', ref, ...props }: ButtonProps) => {
     return (
       <button
         className={cn(
@@ -30,9 +29,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       />
     );
-  }
-);
-
-Button.displayName = 'Button';
+  };
 
 export { Button };

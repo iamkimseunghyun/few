@@ -8,5 +8,6 @@ export default async function ProfileRedirect() {
     redirect('/sign-in');
   }
   
-  redirect(`/profile/${userId}`);
+  // 프로필 페이지 대신 인사이트 탭으로 이동
+  redirect('/diary?view=insights');
 }

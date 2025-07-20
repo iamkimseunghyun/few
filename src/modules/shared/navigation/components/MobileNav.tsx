@@ -27,17 +27,17 @@ const navItems: NavItem[] = [
   },
   {
     href: '/events',
-    label: '이벤트',
+    label: '공연',
     icon: Calendar,
   },
   {
     href: '/diary',
-    label: '다이어리',
+    label: '순간',
     icon: Camera,
   },
   {
     href: '/reviews',
-    label: '리뷰',
+    label: '기록',
     icon: MessageSquare,
   },
   {
@@ -69,6 +69,7 @@ export function MobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                data-testid={item.href === '/profile' ? 'user-menu-mobile' : undefined}
                 className={`flex flex-col items-center justify-center py-2 text-xs transition-colors ${
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 }`}

@@ -46,7 +46,7 @@ export function CloudflareImage({
   variant,
   variants,
   aspectRatio,
-  fallbackSrc = '/images/placeholder.jpg',
+  fallbackSrc = '/images/placeholder.svg',
   priority: customPriority,
   position = 'lazy',
   isLCP = false,
@@ -57,28 +57,19 @@ export function CloudflareImage({
   const [hasError, setHasError] = useState(false);
   const isMobile = useMediaQuery('(max-width: 768px)');
   
-  // 디바이스에 따른 최적 변형 선택
+  // 디바이스에 따른 최적 변형 선택 (early calculation for hooks)
   const optimalVariant = variant || getOptimalVariant(purpose, isMobile ? 400 : 1200);
-  const imageUrl = getCloudflareImageUrl(imageId, optimalVariant);
-  const displayUrl = hasError ? fallbackSrc : imageUrl;
+  const imageUrl = imageId && imageId.trim() !== '' ? getCloudflareImageUrl(imageId, optimalVariant) : null;
+  const displayUrl = hasError ? fallbackSrc : (imageUrl || fallbackSrc);
   
   // 로딩 우선순위 결정
   const { priority, loading, fetchPriority } = getImagePriority(position, isLCP);
-  const finalPriority = customPriority ?? priority;
+  const isPlaceholder = displayUrl === fallbackSrc;
+  const finalPriority = isPlaceholder ? false : (customPriority ?? priority);
+  const finalLoading = isPlaceholder ? 'lazy' : loading;
   
   // srcset 생성 (반응형 이미지)
-  const srcSet = variants ? generateSrcSet(imageId, variants) : undefined;
-  
-  // 이미지 사이즈 힌트
-  const sizes = purpose === 'thumbnail' 
-    ? '150px'
-    : purpose === 'avatar'
-    ? '200px'
-    : purpose === 'list'
-    ? '(max-width: 768px) 100vw, 400px'
-    : purpose === 'hero'
-    ? '100vw'
-    : '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px';
+  const srcSet = variants && imageId && imageId.trim() !== '' ? generateSrcSet(imageId, variants) : undefined;
   
   useEffect(() => {
     // 이미지 프리로드 (중요 이미지)
@@ -96,6 +87,43 @@ export function CloudflareImage({
     }
   }, [finalPriority, imageUrl, fetchPriority]);
   
+  // 이미지 사이즈 힌트
+  const sizes = purpose === 'thumbnail' 
+    ? '150px'
+    : purpose === 'avatar'
+    ? '200px'
+    : purpose === 'list'
+    ? '(max-width: 768px) 100vw, 400px'
+    : purpose === 'hero'
+    ? '100vw'
+    : '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px';
+  
+  // imageId가 없거나 빈 문자열이면 fallbackSrc 사용
+  if (!imageId || imageId.trim() === '') {
+    return (
+      <div 
+        className={cn(
+          'relative overflow-hidden bg-gray-100',
+          aspectRatio && aspectRatioClasses[aspectRatio],
+          containerClassName
+        )}
+      >
+        <Image
+          src={fallbackSrc}
+          alt={alt}
+          fill
+          sizes={sizes}
+          className={cn('object-cover', className)}
+          priority={false}
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+  
+  // displayUrl이 빈 문자열이면 fallbackSrc 사용
+  const finalDisplayUrl = displayUrl || fallbackSrc;
+  
   return (
     <div 
       className={cn(
@@ -106,13 +134,13 @@ export function CloudflareImage({
       onClick={onClick}
     >
       <Image
-        src={displayUrl}
+        src={finalDisplayUrl}
         alt={alt}
         fill
         sizes={sizes}
         quality={90}
         priority={finalPriority}
-        loading={loading}
+        loading={finalLoading}
         className={cn(
           'object-cover transition-opacity duration-300',
           isLoading ? 'opacity-0' : 'opacity-100',

@@ -8,7 +8,7 @@ import { ErrorMessage } from '@/modules/shared/ui/components/ErrorMessage';
 import { DiaryListSkeleton } from './DiaryListSkeleton';
 import { useAuth } from '@clerk/nextjs';
 import { UsersIcon } from '@heroicons/react/24/outline';
-import { VirtualizedInfiniteFeed } from '@/modules/shared/ui/components/VirtualizedInfiniteFeed';
+import { InfiniteFeed } from '@/modules/shared/ui/components/InfiniteFeed';
 
 interface DiaryFeedProps {
   userId?: string;
@@ -39,11 +39,6 @@ export function DiaryFeed({ userId }: DiaryFeedProps) {
     }
   );
 
-  const handleLoadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // 모든 다이어리 데이터를 플랫 배열로 변환
   const allDiaries = useMemo(
@@ -79,18 +74,14 @@ export function DiaryFeed({ userId }: DiaryFeedProps) {
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const renderItem = (item: NonNullable<typeof data>['pages'][0]['items'][0], index: number) => (
-      renderDiaryCard(item)
-  );
 
   if (allDiaries.length === 0) {
     if (userId && userId !== currentUserId) {
       return (
         <EmptyState
           icon={<UsersIcon />}
-          title="아직 작성한 다이어리가 없습니다"
-          description="이 사용자가 음악 일기를 작성하면 여기에 표시됩니다."
+          title="아직 작성한 순간이 없습니다"
+          description="이 사용자가 순간을 기록하면 여기에 표시됩니다."
         />
       );
     }
@@ -100,7 +91,7 @@ export function DiaryFeed({ userId }: DiaryFeedProps) {
         <EmptyState
           icon={<UsersIcon />}
           title="팔로잉 피드가 비어있습니다"
-          description="팔로우한 사용자들의 다이어리가 여기에 표시됩니다."
+          description="팔로우한 사용자들의 순간이 여기에 표시됩니다."
           actionLabel="전체 피드 보기"
           onAction={() => setFeedType('all')}
         />
@@ -110,52 +101,63 @@ export function DiaryFeed({ userId }: DiaryFeedProps) {
     return (
       <EmptyState
         icon={<UsersIcon />}
-        title="아직 다이어리가 없습니다"
-        description="첫 번째 음악 일기를 작성해보세요!"
-        actionLabel="다이어리 작성"
+        title="아직 순간이 없습니다"
+        description="첫 번째 순간을 기록해보세요!"
+        actionLabel="순간 기록"
         actionHref="/music-diary/new"
       />
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* 피드 타입 선택 (본인 프로필이 아닐 때만) */}
+    <>
+      {/* 정렬 탭 */}
       {!userId && currentUserId && (
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFeedType('all')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              feedType === 'all'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            전체
-          </button>
-          <button
-            onClick={() => setFeedType('following')}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              feedType === 'following'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            팔로잉
-          </button>
+        <div className="mb-6 border-b border-border">
+          <div className="flex gap-6">
+            <button
+              onClick={() => setFeedType('all')}
+              className={`pb-3 text-sm font-medium transition-colors relative ${
+                feedType === 'all'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              전체
+              {feedType === 'all' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
+              )}
+            </button>
+            <button
+              onClick={() => setFeedType('following')}
+              className={`pb-3 text-sm font-medium transition-colors relative ${
+                feedType === 'following'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              팔로잉
+              {feedType === 'following' && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground" />
+              )}
+            </button>
+          </div>
         </div>
       )}
 
-      {/* 가상화된 무한 스크롤 피드 */}
-      <VirtualizedInfiniteFeed
+      {/* 다이어리 목록 */}
+      <InfiniteFeed
         items={allDiaries}
-        renderItem={renderItem}
+        renderItem={(item) => (
+          <div key={item.diary.id} className="mb-4 last:mb-0">
+            {renderDiaryCard(item)}
+          </div>
+        )}
         hasMore={hasNextPage}
         isLoading={isFetchingNextPage}
-        onLoadMore={handleLoadMore}
-        itemHeight={600} // 다이어리 카드 예상 높이
-        overscan={2}
+        onLoadMore={fetchNextPage}
+        loader={<DiaryListSkeleton />}
       />
-    </div>
+    </>
   );
 }

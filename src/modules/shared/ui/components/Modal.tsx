@@ -2,7 +2,6 @@
 
 import { useCallback, useRef, useEffect, MouseEventHandler } from 'react';
 import { useRouter } from 'next/navigation';
-import { XMarkIcon } from '@heroicons/react/24/outline';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -41,19 +40,13 @@ export function Modal({ children }: ModalProps) {
   return (
     <div
       ref={overlay}
-      className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 md:p-8"
       onClick={onClick}
     >
       <div
         ref={wrapper}
-        className="relative w-full max-w-5xl h-[90vh] bg-white rounded-lg overflow-hidden flex"
+        className="relative w-full max-w-7xl h-full max-h-[90vh] md:max-h-[85vh] animate-in fade-in zoom-in-95 duration-300"
       >
-        <button
-          onClick={onDismiss}
-          className="absolute top-4 right-4 z-10 p-2 bg-black/20 backdrop-blur-sm rounded-full text-white hover:bg-black/30 transition-colors"
-        >
-          <XMarkIcon className="w-6 h-6" />
-        </button>
         {children}
       </div>
     </div>

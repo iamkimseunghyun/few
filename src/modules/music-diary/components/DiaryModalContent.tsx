@@ -1,34 +1,59 @@
 'use client';
 
-import { api } from '@/lib/trpc-client';
-import { MediaCarousel } from './MediaCarousel';
-import { DiaryComments } from './DiaryComments';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import Link from 'next/link';
-import Image from 'next/image';
-import {
-  Heart,
-  MessageCircle,
-  Bookmark,
-  Share,
-  MapPin,
-  Music,
-  Calendar,
-  User,
-} from 'lucide-react';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { format, formatDistanceToNow } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import { 
+  HeartIcon as HeartOutline,
+  ChatBubbleOvalLeftIcon,
+  PaperAirplaneIcon,
+  BookmarkIcon as BookmarkOutline,
+  EllipsisHorizontalIcon,
+  SparklesIcon,
+  MapPinIcon,
+  CheckBadgeIcon,
+  XMarkIcon,
+  ChevronRightIcon
+} from '@heroicons/react/24/outline';
+import { 
+  HeartIcon as HeartSolid,
+  BookmarkIcon as BookmarkSolid 
+} from '@heroicons/react/24/solid';
 import { useAuth } from '@clerk/nextjs';
+import { api } from '@/lib/trpc-client';
+import { toast } from '@/modules/shared/hooks/useToast';
+import { DiaryComments } from './DiaryComments';
 import { cn } from '@/lib/utils';
+import { MediaGallery } from '@/modules/shared/ui/components/MediaGallery';
 
 interface DiaryModalContentProps {
   diaryId: string;
+  onClose?: () => void;
 }
 
-export function DiaryModalContent({ diaryId }: DiaryModalContentProps) {
+interface MediaItem {
+  url: string;
+  type: 'image' | 'video';
+  thumbnailUrl?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+}
+
+const weatherIcons: Record<string, string> = {
+  sunny: '☀️',
+  cloudy: '☁️',
+  rainy: '🌧️',
+  snowy: '❄️',
+  windy: '💨',
+  foggy: '🌫️',
+};
+
+export function DiaryModalContent({ diaryId, onClose }: DiaryModalContentProps) {
   const { userId } = useAuth();
+  const [showComments, setShowComments] = useState(false);
   
-  // "new" ID는 새 다이어리 작성 페이지이므로 쿼리하지 않음
   const { data, isLoading, error } = api.musicDiary.getById.useQuery(
     { id: diaryId },
     { enabled: diaryId !== 'new' }
@@ -49,11 +74,12 @@ export function DiaryModalContent({ diaryId }: DiaryModalContentProps) {
   const { mutate: toggleLike } = api.musicDiary.toggleLike.useMutation({
     onMutate: () => {
       setIsLiked(!isLiked);
-      setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
+      setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
     },
     onError: () => {
       setIsLiked(isLiked);
       setLikeCount(data?.diary.likeCount || 0);
+      toast.error('오류가 발생했습니다.');
     },
   });
 
@@ -61,213 +87,292 @@ export function DiaryModalContent({ diaryId }: DiaryModalContentProps) {
     onMutate: () => {
       setIsSaved(!isSaved);
     },
+    onSuccess: (data) => {
+      toast.success(data.saved ? '저장되었습니다.' : '저장이 취소되었습니다.');
+    },
     onError: () => {
       setIsSaved(isSaved);
+      toast.error('오류가 발생했습니다.');
     },
   });
 
   const handleShare = async () => {
-    if (navigator.share && data) {
+    if (data) {
       try {
         await navigator.share({
-          title: `${data.user?.username}의 음악 다이어리`,
-          text: data.diary.caption || '음악 다이어리를 확인해보세요!',
+          title: '나의 음악 순간',
+          text: data.diary.caption || '멋진 공연의 순간을 기록했어요',
           url: `/diary/${data.diary.id}`,
         });
-      } catch (error) {
-        console.log('공유 취소 또는 실패:', error);
+      } catch {
+        await navigator.clipboard.writeText(`${window.location.origin}/diary/${diaryId}`);
+        toast.success('링크가 복사되었습니다.');
       }
-    } else {
-      navigator.clipboard.writeText(`${window.location.origin}/diary/${diaryId}`);
-      alert('링크가 복사되었습니다!');
     }
   };
 
-  // "new" ID인 경우 빈 컨텐츠 반환 (실제로는 인터셉팅되지 않아야 함)
   if (diaryId === 'new') {
     return null;
   }
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-muted-foreground border-t-primary" />
+      <div className="w-full h-full flex items-center justify-center bg-background rounded-2xl border border-border/50">
+        <div className="space-y-4 text-center">
+          <div className="relative w-20 h-20 mx-auto">
+            <div className="absolute inset-0 rounded-full border-4 border-purple-600/20" />
+            <div className="absolute inset-0 rounded-full border-4 border-purple-600 border-t-transparent animate-spin" />
+          </div>
+          <p className="text-sm text-muted-foreground animate-pulse">순간을 불러오는 중...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <p className="text-muted-foreground">다이어리를 불러올 수 없습니다.</p>
+      <div className="w-full h-full flex items-center justify-center bg-background rounded-2xl border border-border/50">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto bg-red-500/10 rounded-full flex items-center justify-center">
+            <XMarkIcon className="w-8 h-8 text-red-500" />
+          </div>
+          <p className="text-muted-foreground">순간을 불러올 수 없습니다.</p>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="text-sm text-purple-400 hover:text-purple-300 font-medium"
+            >
+              닫기
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
   const { diary, user } = data;
+  const rawMedia = Array.isArray(diary.media) ? diary.media as MediaItem[] : [];
+  const weather = diary.weather as string | null;
+  const artists = diary.artists as string[] | null;
+  const moments = diary.moments as string[] | null;
+  const setlist = diary.setlist as string[] | null;
+
+  // MediaGallery를 위한 미디어 데이터 변환
+  const media = rawMedia; // Media is already in the correct MediaItem format
+
+  // 디버깅을 위한 로그
+  console.log('Raw media data:', rawMedia);
+  console.log('Converted media data:', media);
+
 
   return (
-    <div className="flex flex-col lg:flex-row h-full max-h-[90vh]">
-      {/* Media Section */}
-      <div className="lg:w-3/5 bg-black flex items-center justify-center relative">
-        <div className="w-full h-full">
-          <MediaCarousel media={diary.media} />
-        </div>
+    <div className="w-full h-full flex flex-col lg:flex-row bg-background rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl border border-border/50">
+      {/* 이미지 영역 - 60% */}
+      <div className="flex-shrink-0 w-full lg:w-[60%] h-[60vh] lg:h-full bg-black relative">
+        {media.length > 0 ? (
+          <MediaGallery
+            media={media}
+            className="w-full h-full"
+            aspectRatio="original"
+            showIndicators={true}
+            showNavigation={true}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 mx-auto bg-gray-800 rounded-full flex items-center justify-center">
+                <SparklesIcon className="w-8 h-8 text-gray-600" />
+              </div>
+              <p className="text-gray-500">이미지가 없습니다</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Info Section */}
-      <div className="lg:w-2/5 bg-card flex flex-col overflow-hidden">
-        {/* User Header */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <Link href={`/profile/${user?.id}`} className="flex items-center gap-3">
-            {user?.imageUrl ? (
-              <Image
-                src={user.imageUrl}
-                alt={user.username || ''}
-                width={40}
-                height={40}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                <User className="w-5 h-5 text-muted-foreground" />
+      {/* 콘텐츠 영역 - 40% */}
+      <div className="flex-1 lg:flex-initial lg:w-[40%] flex flex-col bg-background min-w-0">
+        {/* 작성자 정보 헤더 */}
+        <div className="flex-shrink-0 p-4 border-b border-border">
+          <div className="flex items-center justify-between">
+            <Link href={`/diary?view=profile&userId=${user?.id}`} className="flex items-center gap-3 min-w-0">
+              <div className="relative flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
+                  {user?.username?.[0]?.toUpperCase() || 'U'}
+                </div>
+                {user?.reviewCount && user.reviewCount > 10 && (
+                  <CheckBadgeIcon className="absolute -bottom-1 -right-1 w-5 h-5 text-blue-500 bg-white rounded-full" />
+                )}
               </div>
-            )}
-            <div>
-              <p className="font-semibold text-sm">{user?.username}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(diary.createdAt), {
-                  addSuffix: true,
-                  locale: ko,
-                })}
-              </p>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-foreground truncate">{user?.username || '익명'}</p>
+                {diary.location && (
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPinIcon className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{diary.location}</span>
+                  </p>
+                )}
+              </div>
+            </Link>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link 
+                href={`/diary/${diary.id}`}
+                className="p-2 hover:bg-muted rounded-full transition-colors"
+              >
+                <EllipsisHorizontalIcon className="w-5 h-5 text-muted-foreground" />
+              </Link>
             </div>
-          </Link>
+          </div>
         </div>
 
-        {/* Content Section - Scrollable */}
+        {/* 스크롤 가능한 컨텐츠 */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 space-y-4">
-            {/* Caption */}
-            {diary.caption && (
-              <p className="text-sm whitespace-pre-wrap">{diary.caption}</p>
-            )}
-
-            {/* Event Info */}
-            {diary.eventId && (
-              <Link
-                href={`/events/${diary.eventId}`}
-                className="block p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">이벤트 보기</span>
-                </div>
-              </Link>
-            )}
-
-            {/* Location */}
-            {diary.location && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                <span>{diary.location}</span>
-              </div>
-            )}
-
-            {/* Artists */}
-            {diary.artists && diary.artists.length > 0 && (
-              <div className="flex items-start gap-2 text-sm">
-                <Music className="w-4 h-4 text-muted-foreground mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-medium mb-1">아티스트</p>
+            {/* 이벤트/아티스트 정보 */}
+            {artists && (
+              <div className="space-y-3">
+                
+                {artists && artists.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {diary.artists.map((artist, index) => (
-                      <span
+                    {artists.map((artist, index) => (
+                      <span 
                         key={index}
-                        className="inline-block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs"
+                        className="text-sm px-3 py-1.5 bg-gradient-to-r from-purple-600/10 to-pink-600/10 text-foreground rounded-full font-medium border border-purple-600/20"
                       >
                         {artist}
                       </span>
                     ))}
                   </div>
-                </div>
+                )}
               </div>
             )}
 
-            {/* Moments */}
-            {diary.moments && diary.moments.length > 0 && (
-              <div className="text-sm">
-                <p className="font-medium mb-2">기억하고 싶은 순간</p>
-                <div className="space-y-2">
-                  {diary.moments.map((moment, index) => (
-                    <p key={index} className="text-muted-foreground">
-                      • {moment}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Mood */}
-            {diary.mood && (
-              <div className="text-sm">
-                <p className="font-medium mb-1">오늘의 기분</p>
-                <p className="text-muted-foreground">{diary.mood}</p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="border-t border-border pt-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => userId && toggleLike({ diaryId: diary.id })}
-                    className="transition-transform hover:scale-110"
-                    disabled={!userId}
-                  >
-                    <Heart
-                      className={cn(
-                        "w-6 h-6",
-                        isLiked && "fill-red-500 text-red-500"
-                      )}
-                    />
-                  </button>
-                  <button className="transition-transform hover:scale-110">
-                    <MessageCircle className="w-6 h-6" />
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="transition-transform hover:scale-110"
-                  >
-                    <Share className="w-6 h-6" />
-                  </button>
-                </div>
-                <button
-                  onClick={() => userId && toggleSave({ diaryId: diary.id })}
-                  className="transition-transform hover:scale-110"
-                  disabled={!userId}
-                >
-                  <Bookmark
-                    className={cn(
-                      "w-6 h-6",
-                      isSaved && "fill-current"
-                    )}
-                  />
-                </button>
-              </div>
-              
-              {likeCount > 0 && (
-                <p className="text-sm font-semibold">
-                  좋아요 {likeCount.toLocaleString()}개
+            {/* 캡션 */}
+            {diary.caption && (
+              <div>
+                <p className="text-foreground leading-relaxed">
+                  <span className="font-semibold mr-2">{user?.username || '익명'}</span>
+                  {diary.caption}
                 </p>
+              </div>
+            )}
+
+            {/* 특별한 순간들 */}
+            {moments && moments.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {moments.map((moment, index) => (
+                  <span
+                    key={index}
+                    className="text-sm text-purple-400 hover:text-purple-300 cursor-pointer"
+                  >
+                    #{moment}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* 날씨와 시간 */}
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              {weather && (
+                <span className="flex items-center gap-1">
+                  <span className="text-lg">{weatherIcons[weather] || '🌈'}</span>
+                  <span>{weather}</span>
+                </span>
               )}
+              <span>
+                {formatDistanceToNow(new Date(diary.createdAt), { 
+                  addSuffix: true, 
+                  locale: ko 
+                })}
+              </span>
             </div>
+
+            {/* 셋리스트 */}
+            {setlist && setlist.length > 0 && (
+              <details className="group">
+                <summary className="font-medium cursor-pointer flex items-center gap-2 p-3 bg-muted/50 hover:bg-muted rounded-lg transition-colors">
+                  <SparklesIcon className="w-5 h-5 text-purple-400" />
+                  <span>셋리스트</span>
+                  <span className="text-sm text-muted-foreground">({setlist.length}곡)</span>
+                  <ChevronRightIcon className="w-4 h-4 ml-auto group-open:rotate-90 transition-transform" />
+                </summary>
+                <div className="mt-2 p-3 bg-muted/30 rounded-lg">
+                  <ol className="space-y-2">
+                    {setlist.map((song, index) => (
+                      <li key={index} className="flex gap-3 text-sm">
+                        <span className="text-muted-foreground font-mono">{String(index + 1).padStart(2, '0')}</span>
+                        <span className="text-foreground">{song}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </details>
+            )}
           </div>
+
+          {/* 댓글 섹션 */}
+          {showComments && (
+            <div className="border-t border-border">
+              <DiaryComments diaryId={diary.id} />
+            </div>
+          )}
         </div>
 
-        {/* Comments Section */}
-        <div className="border-t border-border max-h-[40%] flex flex-col">
-          <DiaryComments diaryId={diary.id} />
+        {/* 액션 버튼 푸터 */}
+        <div className="flex-shrink-0 border-t border-border p-4 bg-background">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => userId && toggleLike({ diaryId: diary.id })}
+                className={cn(
+                  "p-2 rounded-full transition-colors",
+                  isLiked ? "text-red-500" : "text-muted-foreground hover:text-foreground"
+                )}
+                disabled={!userId}
+              >
+                {isLiked ? (
+                  <HeartSolid className="w-6 h-6" />
+                ) : (
+                  <HeartOutline className="w-6 h-6" />
+                )}
+              </button>
+              <button 
+                onClick={() => setShowComments(!showComments)}
+                className="p-2 text-muted-foreground hover:text-foreground rounded-full transition-colors"
+              >
+                <ChatBubbleOvalLeftIcon className="w-6 h-6" />
+              </button>
+              <button
+                onClick={handleShare}
+                className="p-2 text-muted-foreground hover:text-foreground rounded-full transition-colors"
+              >
+                <PaperAirplaneIcon className="w-6 h-6" />
+              </button>
+            </div>
+            <button
+              onClick={() => userId && toggleSave({ diaryId: diary.id })}
+              className={cn(
+                "p-2 rounded-full transition-colors",
+                isSaved ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+              disabled={!userId}
+            >
+              {isSaved ? (
+                <BookmarkSolid className="w-6 h-6" />
+              ) : (
+                <BookmarkOutline className="w-6 h-6" />
+              )}
+            </button>
+          </div>
+          
+          <div>
+            <p className="font-semibold text-sm text-foreground">
+              좋아요 {likeCount.toLocaleString()}개
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {format(new Date(diary.createdAt), 'yyyy년 MM월 dd일', { locale: ko })}
+            </p>
+          </div>
         </div>
       </div>
     </div>

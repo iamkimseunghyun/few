@@ -1,9 +1,7 @@
-import { pgTable, text, varchar, json, timestamp, integer, boolean, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, text, varchar, json, timestamp, integer, boolean } from 'drizzle-orm/pg-core';
 import { createId } from '@paralleldrive/cuid2';
-import { users, events } from '../schema';
-
-// Media type enum
-export const mediaTypeEnum = pgEnum('media_type', ['image', 'video']);
+import { users } from './users';
+import { events } from './events';
 
 // Music diary entries (like Instagram posts)
 export const musicDiaries = pgTable('music_diaries', {
@@ -34,6 +32,7 @@ export const musicDiaries = pgTable('music_diaries', {
   setlist: json('setlist').$type<string[]>(), // Songs performed
   moments: json('moments').$type<string[]>(), // Special moments tags (#앵콜무대 #떼창)
   mood: varchar('mood', { length: 50 }), // 감동적인, 신나는, 뭉클한, etc.
+  weather: varchar('weather', { length: 50 }), // sunny, cloudy, rainy, snowy, etc.
   
   // Social features
   likeCount: integer('like_count').default(0).notNull(),
@@ -117,3 +116,15 @@ export const mediaQueue = pgTable('media_queue', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   processedAt: timestamp('processed_at'),
 });
+
+// Type exports for TypeScript
+export type MusicDiary = typeof musicDiaries.$inferSelect;
+export type NewMusicDiary = typeof musicDiaries.$inferInsert;
+export type DiaryLike = typeof diaryLikes.$inferSelect;
+export type NewDiaryLike = typeof diaryLikes.$inferInsert;
+export type DiaryComment = typeof diaryComments.$inferSelect;
+export type NewDiaryComment = typeof diaryComments.$inferInsert;
+export type DiarySave = typeof diarySaves.$inferSelect;
+export type NewDiarySave = typeof diarySaves.$inferInsert;
+export type MediaQueue = typeof mediaQueue.$inferSelect;
+export type NewMediaQueue = typeof mediaQueue.$inferInsert;
